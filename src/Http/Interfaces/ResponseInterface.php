@@ -1,6 +1,6 @@
 <?php
 
-namespace Mini\Http\Interfaces;
+namespace Slim\Http\Interfaces;
 
 
 interface ResponseInterface
