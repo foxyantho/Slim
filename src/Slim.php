@@ -364,55 +364,41 @@ class Slim
      *
      * @return ResponseInterface
      */
-    public function __invoke(RequestInterface $request, ResponseInterface $response)
+    public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
         $routeInfo = $this->container->get('router')->dispatch($request);
-        if ($routeInfo[0] === \FastRoute\Dispatcher::FOUND) {
+
+        // 0 -> type
+        // 1 -> route
+        // 2 -> get params
+
+        if( $routeInfo[0] === RouteDispatcher::FOUND )
+        {
             // URL decode the named arguments from the router
+
             $attributes = $routeInfo[2];
-            array_walk($attributes, function (&$v, $k) {
+
+            array_walk($attributes, function( &$v, $k ) {
                 $v = urldecode($v);
             });
-            return $routeInfo[1]($request->withAttributes($attributes), $response);
+
+            return $routeInfo[1]($request->attributes($attributes), $response);
         }
-        if ($routeInfo[0] === \FastRoute\Dispatcher::NOT_FOUND) {
-            $notFoundHandler = $this->container->get('notFoundHandler');
+
+        if( $routeInfo[0] === RouteDispatcher::NOT_FOUND )
+        {
+            $notFoundHandler = 'notFoundHandler'; // @FIXME
+
             return $notFoundHandler($request, $response);
         }
-        if ($routeInfo[0] === \FastRoute\Dispatcher::METHOD_NOT_ALLOWED) {
-            $notAllowedHandler = $this->container->get('notAllowedHandler');
+
+        if( $routeInfo[0] === RouteDispatcher::METHOD_NOT_ALLOWED )
+        {
+            $notAllowedHandler = 'notAllowedHandler'; // @FIXME
+
             return $notAllowedHandler($request, $response, $routeInfo[1]);
         }
     }
 
-    /**
-     * Perform a sub-request from within an application route
-     *
-     * This method allows you to prepare and initiate a sub-request, run within
-     * the context of the current request. This WILL NOT issue a remote HTTP
-     * request. Instead, it will route the provided URL, method, headers,
-     * cookies, body, and server variables against the set of registered
-     * application routes. The result response object is returned.
-     *
-     * @param  string            $method      The request method (e.g., GET, POST, PUT, etc.)
-     * @param  string            $path        The request URI path
-     * @param  array             $headers     The request headers (key-value array)
-     * @param  array             $cookies     The request cookies (key-value array)
-     * @param  string            $bodyContent The request body
-     * @return ResponseInterface
-     */
-    public function subRequest($method, $path, array $headers = [], array $cookies = [], $bodyContent = '')
-    {
-        $env = $this->container->get('environment');
-        $uri = Http\Uri::createFromEnvironment($env)->withPath($path);
-        $headers = new Http\Headers($headers);
-        $serverParams = new Collection($env->all());
-        $body = new Http\Body(fopen('php://temp', 'r+'));
-        $body->write($bodyContent);
-        $body->rewind();
-        $request = new Http\Request($method, $uri, $headers, $cookies, $serverParams, $body);
-        $response = $this->container->get('response');
 
-        return $this($request, $response);
-    }
 }
