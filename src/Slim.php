@@ -346,7 +346,7 @@ class Slim
      */
     public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
-        $routeInfo = $this->container->get('router')->dispatch($request);
+        $routeInfo = $this->router->dispatch($request);
 
         // 0 -> type
         // 1 -> route
