@@ -126,7 +126,7 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function get($pattern, $callable)
+    public function get( $pattern, $callable )
     {
         return $this->map(['GET'], $pattern, $callable);
     }
@@ -139,7 +139,7 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function post($pattern, $callable)
+    public function post( $pattern, $callable )
     {
         return $this->map(['POST'], $pattern, $callable);
     }
@@ -152,7 +152,7 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function put($pattern, $callable)
+    public function put( $pattern, $callable )
     {
         return $this->map(['PUT'], $pattern, $callable);
     }
@@ -165,7 +165,7 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function patch($pattern, $callable)
+    public function patch( $pattern, $callable )
     {
         return $this->map(['PATCH'], $pattern, $callable);
     }
@@ -178,7 +178,7 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function delete($pattern, $callable)
+    public function delete( $pattern, $callable )
     {
         return $this->map(['DELETE'], $pattern, $callable);
     }
@@ -191,7 +191,7 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function options($pattern, $callable)
+    public function options( $pattern, $callable )
     {
         return $this->map(['OPTIONS'], $pattern, $callable);
     }
@@ -205,17 +205,16 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function map(array $methods, $pattern, $callable)
+    public function map( array $methods, $pattern, $callable )
     {
         $callable = is_string($callable) ? $this->resolveCallable($callable) : $callable;
-        if ($callable instanceof \Closure) {
+
+        if( $callable instanceof Closure )
+        {
             $callable = $callable->bindTo($this);
         }
 
-        $route = $this->container->get('router')->map($methods, $pattern, $callable);
-        if (method_exists($route, 'setContainer')) {
-            $route->setContainer($this->container);
-        }
+        $route = $this->router->map($methods, $pattern, $callable);
 
         return $route;
     }
@@ -256,9 +255,9 @@ class Slim
      *
      * @throws \Slim\Exception
      */
-    public function stop(ResponseInterface $response)
+    public function stop( ResponseInterface $response )
     {
-        throw new \Slim\Exception($response);
+        throw new SlimException($response);
     }
 
     /**
@@ -274,10 +273,12 @@ class Slim
      *
      * @throws \Slim\Exception
      */
-    public function halt($status, $message = '')
+    public function halt( $status, $message = '' )
     {
-        $response = $this->container->get('response')->withStatus($status);
-        $response->write($message);
+        $response = $this->response->status($status);
+
+        $response->body($message);
+
         $this->stop($response);
     }
 
@@ -293,64 +294,59 @@ class Slim
      */
     public function run()
     {
-        static $responded = false;
-        $request = $this->container->get('request');
-        $response = $this->container->get('response');
+        $request = $this->request;
+        $response = $this->response;
 
         // Traverse middleware stack
-        try {
+
+        try
+        {
             $response = $this->callMiddlewareStack($request, $response);
-        } catch (\Slim\Exception $e) {
+        }
+        catch ( SlimException $e )
+        {
             $response = $e->getResponse();
-        } catch (\Exception $e) {
-            $errorHandler = $this->container->get('errorHandler');
+        }
+        catch( Exception $e )
+        {
+            $errorHandler = 'errorHandler'; // @FIXME
+
             $response = $errorHandler($request, $response, $e);
         }
 
-        // Finalize response
-        $statusCode = $response->getStatusCode();
-        $hasBody = ($statusCode !== 204 && $statusCode !== 304);
-        if (!$hasBody) {
-            $response = $response->withoutHeader('Content-Type')->withoutHeader('Content-Length');
-        } else {
-            $size = $response->getBody()->getSize();
-            if ($size !== null) {
-                $response = $response->withHeader('Content-Length', $size);
-            }
-        }
+        // Finalize response : fetch status, header, and body
+
+        list($status, $headers, $body) = $response->finalize();
 
         // Send response
-        if (!$responded) {
-            if (!headers_sent()) {
-                // Status
-                header(sprintf(
-                    'HTTP/%s %s %s',
-                    $response->getProtocolVersion(),
-                    $response->getStatusCode(),
-                    $response->getReasonPhrase()
-                ));
 
-                // Headers
-                foreach ($response->getHeaders() as $name => $values) {
-                    foreach ($values as $value) {
-                        header(sprintf('%s: %s', $name, $value), false);
-                    }
+        if( !headers_sent() )
+        {
+            header(sprintf(
+                'HTTP/%s %s %s',
+                $response->getProtocolVersion(),
+                $response->getStatusCode(),
+                $response->getReasonPhrase()
+            ));
+
+            // Headers
+            foreach( $headers as $name => $values )
+            {
+                foreach( $values as $value )
+                {
+                    header(sprintf('%s: %s', $name, $value), false); // multiples
                 }
             }
-
-            // Body
-            if ($hasBody) {
-                $body = $response->getBody();
-                if ($body->isAttached()) {
-                    $body->rewind();
-                    while (!$body->eof()) {
-                        $settings = $this->container->get('settings');
-                        echo $body->read($settings['responseChunkSize']);
-                    }
-                }
-            }
-            $responded = true;
         }
+
+        // Body
+
+        if( $body )
+        {
+            echo $body;
+        }
+
+        // response, if needed
 
         return $response;
     }
