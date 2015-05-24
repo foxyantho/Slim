@@ -186,7 +186,7 @@ class Request implements RequestInterface
 
         $method = strtoupper($method);
 
-        if( !isset($this->validMethods[$method]) )
+        if( !in_array($method, $this->validMethods) )
         {
             throw new InvalidArgumentException('Unsupported HTTP method : "' . $method . '"');
         }
