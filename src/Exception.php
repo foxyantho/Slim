@@ -6,9 +6,10 @@
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
+
 namespace Slim;
 
-use Psr\Http\Message\ResponseInterface;
+use Slim\Http\Interfaces\ResponseInterface;
 
 /**
  * Stop Exception
@@ -18,21 +19,23 @@ use Psr\Http\Message\ResponseInterface;
  */
 class Exception extends \Exception
 {
+
     /**
      * A response object to send to the HTTP client
-     *
      * @var ResponseInterface
      */
     protected $response;
+
 
     /**
      * Create new exception
      *
      * @param ResponseInterface $response
      */
-    public function __construct(ResponseInterface $response)
+    public function __construct( ResponseInterface $response )
     {
         parent::__construct();
+
         $this->response = $response;
     }
 
@@ -45,4 +48,6 @@ class Exception extends \Exception
     {
         return $this->response;
     }
+
+
 }
