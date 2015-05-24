@@ -6,9 +6,11 @@
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
-namespace Slim\Interfaces;
 
-use Psr\Http\Message\RequestInterface;
+namespace Slim\Routing\Interfaces;
+
+use Slim\Http\Interfaces\RequestInterface;
+
 
 interface RouterInterface
 {
@@ -21,7 +23,7 @@ interface RouterInterface
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function map($methods, $pattern, $handler);
+    public function map( $methods, $pattern, $handler );
 
     /**
      * Dispatch router for HTTP request
@@ -31,24 +33,7 @@ interface RouterInterface
      * @return array
      * @link   https://github.com/nikic/FastRoute/blob/master/src/Dispatcher.php
      */
-    public function dispatch(RequestInterface $request);
-
-    /**
-     * Add a route group to the array
-     *
-     * @param string     $group      The group pattern prefix
-     * @param array|null $middleware Optional middleware
-     *
-     * @return int The index of the new group
-     */
-    public function pushGroup($group, $middleware = []);
-
-    /**
-     * Removes the last route group from the array
-     *
-     * @return bool True if successful, else False
-     */
-    public function popGroup();
+    public function dispatch( RequestInterface $request );
 
     /**
      * Build URL for named route
@@ -61,5 +46,5 @@ interface RouterInterface
      * @throws \RuntimeException         If named route does not exist
      * @throws \InvalidArgumentException If required data not provided
      */
-    public function urlFor($name, array $data = [], array $queryParams = []);
+    public function urlFor( $name, array $data = [], array $queryParams = [] );
 }
