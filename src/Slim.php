@@ -43,42 +43,47 @@ class Slim
      */
     const VERSION = '3.0.0';
 
-    /**
-     * Container
-     *
-     * @var ContainerInterface
-     */
-    private $container;
 
-    /********************************************************************************
-     * Constructor
-     *******************************************************************************/
+    protected $settings;
 
-    /**
-     * Create new application
-     *
-     * @param ContainerInterface|array $container Either a ContainerInterface or an associative array of application settings
-     */
-    public function __construct($container = [])
+    protected $environment;
+
+    protected $request;
+
+    protected $response;
+
+    protected $router;
+
+
+    public function __construct( array $userSettings = [] )
     {
-        if (is_array($container)) {
-            $container = new Container($container);
-        }
-        if (!$container instanceof ContainerInterface) {
-            throw new \Exception("Expected a ContainerInterface");
-        }
-        $this->container = $container;
+        // settings
+
+        $this->settings = array_merge(static::getDefaultSettings(), $userSettings);
+
+        // environment
+
+        $this->environment = new HttpEnvironment($_SERVER);
+
+        // request
+
+        // response
+
+        // router
     }
 
     /**
-     * Enable access to the DI container by consumers of $app
-     *
-     * @return ContainerInterface
+     * Get default settings
+     * 
+     * @return array
      */
-    public function getContainer()
+    public static function getDefaultSettings()
     {
-        return $this->container;
+        return [
+            'httpVersion' => '1.1'
+        ];
     }
+
 
     /********************************************************************************
      * Container proxy methods
