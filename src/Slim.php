@@ -31,7 +31,7 @@ use Interop\Container\ContainerInterface;
  * @property-read callable function($request, $response) $notFoundHandler
  * @property-read callable function($request, $response, $allowedHttpMethods) $notAllowedHandler
  */
-class App
+class Slim
 {
     use ResolveCallable;
     use MiddlewareAware;
