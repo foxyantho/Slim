@@ -6,7 +6,10 @@
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
-namespace Slim\Interfaces\Http;
+
+namespace Slim\Http\Interfaces;
+
+use Slim\Interfaces\CollectionInterface;
 
 /**
  * Environment Interface
@@ -15,7 +18,8 @@ namespace Slim\Interfaces\Http;
  * @author  John Porter
  * @since   3.0.0
  */
-interface EnvironmentInterface
+interface EnvironmentInterface extends CollectionInterface
 {
-    public static function mock(array $settings = []);
+
+
 }
