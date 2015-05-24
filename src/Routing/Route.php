@@ -6,6 +6,7 @@
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
+
 namespace Slim\Routing;
 
 use Slim\Routing\Interfaces\RouteInterface;
@@ -124,18 +125,6 @@ class Route implements RouteInterface
     public function getCallable()
     {
         return $this->callable;
-    }
-
-    /**
-     * Set route callable
-     *
-     * @param callable $callable
-     *
-     * @throws \InvalidArgumentException If argument is not callable
-     */
-    protected function setCallable(callable $callable)
-    {
-        $this->callable = $callable;
     }
 
     /**
