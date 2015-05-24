@@ -389,11 +389,11 @@ class Response implements ResponseInterface
             $this->withoutHeader('Content-Type');
             $this->withoutHeader('Content-Length');
 
-            $this->body('');
+            $this->body(null);
         }
         else
         {
-            $this->header('Content-Length', $this->getLength());
+            $this->header('Content-Length', $this->getBodyLength());
         }
 
         return [
