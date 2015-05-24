@@ -8,7 +8,9 @@
  */
 namespace Slim\Http;
 
-use Slim\Interfaces\Http\CollectionInterface;
+use Slim\Interfaces\CollectionInterface;
+
+use ArrayIterator;
 
 /**
  * Collection
@@ -19,9 +21,9 @@ use Slim\Interfaces\Http\CollectionInterface;
  */
 class Collection implements CollectionInterface
 {
+
     /**
      * The source data
-     *
      * @var array
      */
     protected $data = [];
@@ -31,16 +33,16 @@ class Collection implements CollectionInterface
      *
      * @param array $items Pre-populate collection with this key-value array
      */
-    public function __construct(array $items = [])
+    public function __construct( array $items = [] )
     {
-        foreach ($items as $key => $value) {
-            $this->set($key, $value);
-        }
+        $this->add($items);
     }
+
 
     /********************************************************************************
      * Collection interface
      *******************************************************************************/
+
 
     /**
      * Set collection item
@@ -48,9 +50,14 @@ class Collection implements CollectionInterface
      * @param string $key   The data key
      * @param mixed  $value The data value
      */
-    public function set($key, $value)
+    public function set( $key, $value )
     {
         $this->data[$key] = $value;
+    }
+
+    public function __set($key, $value )
+    {
+        return $this->set($key, $value);
     }
 
     /**
@@ -61,9 +68,31 @@ class Collection implements CollectionInterface
      *
      * @return mixed The key's value, or the default value
      */
-    public function get($key, $default = null)
+    public function get( $key, $default = false )
     {
         return $this->has($key) ? $this->data[$key] : $default;
+    }
+
+    public function __get( $key )
+    {
+        return $this->get($key);
+    }
+
+    /**
+     * Does this collection have a given key?
+     *
+     * @param string $key The data key
+     *
+     * @return bool
+     */
+    public function has( $key )
+    {
+        return isset($this->data[$key]);
+    }
+
+    public function __isset( $key )
+    {
+        return $this->has($key);
     }
 
     /**
@@ -71,9 +100,10 @@ class Collection implements CollectionInterface
      *
      * @param array $items Key-value array of data to append to this collection
      */
-    public function replace(array $items)
+    public function add( array $data )
     {
-        foreach ($items as $key => $value) {
+        foreach( $data as $key => $value )
+        {
             $this->set($key, $value);
         }
     }
@@ -99,23 +129,11 @@ class Collection implements CollectionInterface
     }
 
     /**
-     * Does this collection have a given key?
-     *
-     * @param string $key The data key
-     *
-     * @return bool
-     */
-    public function has($key)
-    {
-        return array_key_exists($key, $this->data);
-    }
-
-    /**
      * Remove item from collection
      *
      * @param string $key The data key
      */
-    public function remove($key)
+    public function remove( $key )
     {
         unset($this->data[$key]);
     }
@@ -128,9 +146,11 @@ class Collection implements CollectionInterface
         $this->data = [];
     }
 
+
     /********************************************************************************
      * ArrayAccess interface
      *******************************************************************************/
+
 
     /**
      * Does this collection have a given key?
@@ -139,7 +159,7 @@ class Collection implements CollectionInterface
      *
      * @return bool
      */
-    public function offsetExists($key)
+    public function offsetExists( $key )
     {
         return $this->has($key);
     }
@@ -151,7 +171,7 @@ class Collection implements CollectionInterface
      *
      * @return mixed The key's value, or the default value
      */
-    public function offsetGet($key)
+    public function offsetGet( $key )
     {
         return $this->get($key);
     }
@@ -162,7 +182,7 @@ class Collection implements CollectionInterface
      * @param string $key   The data key
      * @param mixed  $value The data value
      */
-    public function offsetSet($key, $value)
+    public function offsetSet( $key, $value )
     {
         $this->set($key, $value);
     }
@@ -172,7 +192,7 @@ class Collection implements CollectionInterface
      *
      * @param string $key The data key
      */
-    public function offsetUnset($key)
+    public function offsetUnset( $key )
     {
         $this->remove($key);
     }
@@ -187,9 +207,11 @@ class Collection implements CollectionInterface
         return count($this->data);
     }
 
+
     /********************************************************************************
      * IteratorAggregate interface
      *******************************************************************************/
+
 
     /**
      * Get collection iterator
@@ -198,6 +220,8 @@ class Collection implements CollectionInterface
      */
     public function getIterator()
     {
-        return new \ArrayIterator($this->data);
+        return new ArrayIterator($this->data);
     }
+
+
 }
