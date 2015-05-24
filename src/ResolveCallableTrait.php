@@ -46,17 +46,15 @@ trait ResolveCallableTrait
                 
                 $parent = $this; // pass parent argument to callable constructor
 
-                $callable = function() use ( $parent, $class, $method )
+                return function() use ( $parent, $class, $method )
                 {
                     $obj = new $class($parent);
 
                     return call_user_func_array([$obj, $method], func_get_args());
                 };
-
-                //if ($this->container->has($class))
-
-                return $callable;
             }
+
+            throw new RuntimeException('"' . $callable . '" is not resolvable');
         }
 
         throw new RuntimeException('Callable is not resolvable');
