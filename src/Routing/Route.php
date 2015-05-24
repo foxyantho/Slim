@@ -8,27 +8,30 @@
  */
 namespace Slim\Routing;
 
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Slim\Interfaces\RouteInterface;
-use Interop\Container\ContainerInterface;
+use Slim\Routing\Interfaces\RouteInterface;
+use Slim\ResolveCallableTrait;
+use Slim\MiddlewareAwareTrait;
+
+use Slim\Http\Interfaces\RequestInterface;
+use Slim\Http\Interfaces\ResponseInterface;
+
+use Closure;
+use Exception;
+use InvalidArgumentException;
+
 
 /**
  * Route
  */
 class Route implements RouteInterface
 {
-    use ResolveCallable;
-    use MiddlewareAware {
+
+    use ResolveCallableTrait;
+
+    use MiddlewareAwareTrait {
         add as addMiddleware;
     }
 
-    /**
-     * Container
-     *
-     * @var ContainerInterface
-     */
-    private $container;
 
     /**
      * HTTP methods supported by this route
@@ -65,10 +68,12 @@ class Route implements RouteInterface
      * @param string   $pattern       The route pattern
      * @param callable $callable      The route callable
      */
-    public function __construct($methods, $pattern, $callable)
+    public function __construct( $methods, $pattern, $callable )
     {
         $this->methods = $methods;
+
         $this->pattern = $pattern;
+
         $this->callable = $callable;
     }
 
@@ -81,10 +86,12 @@ class Route implements RouteInterface
      *
      * @return RouteInterface
      */
-    public function add($callable)
+    public function add( $callable )
     {
         $callable = $this->resolveCallable($callable);
-        if ($callable instanceof \Closure) {
+
+        if( $callable instanceof Closure )
+        {
             $callable = $callable->bindTo($this->container);
         }
 
@@ -148,29 +155,23 @@ class Route implements RouteInterface
      *
      * @param string $name
      */
-    public function setName($name)
+    public function setName( $name )
     {
-        if (!is_string($name)) {
-            throw new \InvalidArgumentException('Route name must be a string');
+        if( !is_string($name) )
+        {
+            throw new InvalidArgumentException('Route name must be a string');
         }
+
         $this->name = $name;
+
         return $this;
     }
 
-    /**
-     * Set container for use with resolveCallable
-     *
-     * @param ContainerInterface $container
-     */
-    public function setContainer(ContainerInterface $container)
-    {
-        $this->container = $container;
-        return $this;
-    }
 
     /********************************************************************************
     * Route Runner
     *******************************************************************************/
+
 
     /**
      * Run route
@@ -179,7 +180,7 @@ class Route implements RouteInterface
      * and captures the resultant HTTP response object. It then sends the response
      * back to the Application.
      */
-    public function run(RequestInterface $request, ResponseInterface $response)
+    public function run( RequestInterface $request, ResponseInterface $response )
     {
         // Traverse middleware stack and fetch updated response
         return $this->callMiddlewareStack($request, $response);
@@ -197,7 +198,7 @@ class Route implements RouteInterface
      * @return \Psr\Http\Message\ResponseInterface
      * @throws \Exception
      */
-    public function __invoke(RequestInterface $request, ResponseInterface $response)
+    public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
         // invoke route callable
         try {
