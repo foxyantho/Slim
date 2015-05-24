@@ -61,6 +61,7 @@ class Route implements RouteInterface
      */
     protected $name;
 
+
     /**
      * Create new route
      *
@@ -78,12 +79,9 @@ class Route implements RouteInterface
     }
 
     /**
-     * Add middleware
-     *
-     * This method prepends new middleware to the route's middleware stack.
+     * Add middleware : prepends new middleware to the route's middleware stack.
      *
      * @param  mixed    $callable The callback routine
-     *
      * @return RouteInterface
      */
     public function add( $callable )
@@ -174,9 +172,7 @@ class Route implements RouteInterface
 
 
     /**
-     * Run route
-     *
-     * This method traverses the middleware stack, including the route's callable
+     * Run route : traverses the middleware stack, including the route's callable
      * and captures the resultant HTTP response object. It then sends the response
      * back to the Application.
      */
@@ -188,7 +184,6 @@ class Route implements RouteInterface
 
     /**
      * Dispatch route callable against current Request and Response objects
-     *
      * This method invokes the route object's callable. If middleware is
      * registered for the route, each callable middleware is invoked in
      * the order specified.
@@ -201,31 +196,46 @@ class Route implements RouteInterface
     public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
         // invoke route callable
-        try {
+        try
+        {
+            $callable = $this->callable;
+
             ob_start();
-            $function = $this->callable;
-            $newReponse = $function($request, $response, $request->getAttributes());
+
+            $newReponse = $callable($request, $response, $request->getAttributes());
+            //$newResponse = call_user_func_array($callable, [$request, $response] + $this->parsedArgs);
+            // @TODO @FIXME use ?
             $output = ob_get_clean();
-        } catch (\Exception $e) {
+
+        }
+        catch( Exception $e )
+        {
             ob_end_clean();
+
             throw $e;
         }
         
         // if route callback returns a ResponseInterface, then use it
-        if ($newReponse instanceof ResponseInterface) {
+        if( $newReponse instanceof ResponseInterface )
+        {
             $response = $newReponse;
         }
 
         // if route callback retuns a string, then append it to the response
-        if (is_string($newReponse)) {
-            $response->getBody()->write($newReponse);
+        if( is_string($newReponse) )
+        {
+            $response->body($newReponse);
         }
         
         // append output buffer content if there is any
-        if ($output) {
-            $response->getBody()->write($output);
+        if( $output )
+        {
+            $response->body($output);
         }
+
 
         return $response;
     }
+
+
 }
