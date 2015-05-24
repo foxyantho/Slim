@@ -6,10 +6,11 @@
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
+
 namespace Slim\Interfaces;
 
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
+use Slim\Http\Interfaces\RequestInterface;
+use Slim\Http\Interfaces\ResponseInterface;
 
 interface RouteInterface
 {
@@ -33,5 +34,6 @@ interface RouteInterface
      *
      * @return ResponseInterface
      */
-    public function __invoke(RequestInterface $request, ResponseInterface $response);
+    public function __invoke( RequestInterface $request, ResponseInterface $response );
+
 }
