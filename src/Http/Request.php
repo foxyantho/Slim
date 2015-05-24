@@ -97,7 +97,7 @@ class Request implements RequestInterface
      */
     public function __construct( $method, HeadersInterface $headers, $body )
     {
-        $this->method = $method;
+        $this->method = $this->filterMethod($method);
 
         $this->headers = $headers;
 
