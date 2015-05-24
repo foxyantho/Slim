@@ -219,31 +219,11 @@ class Slim
         return $route;
     }
 
-    /**
-     * Route Groups
-     *
-     * This method accepts a route pattern and a callback. All route
-     * declarations in the callback will be prepended by the group(s)
-     * that it is in.
-     *
-     * Accepts the same parameters as a standard route so:
-     * (pattern, middleware1, middleware2, ..., $callback)
-     */
-    public function group()
-    {
-        $args = func_get_args();
-        $pattern = array_shift($args);
-        $callable = array_pop($args);
-        $this->container->get('router')->pushGroup($pattern, $args);
-        if (is_callable($callable)) {
-            call_user_func($callable);
-        }
-        $this->container->get('router')->popGroup();
-    }
 
     /********************************************************************************
      * Application flow methods
      *******************************************************************************/
+
 
     /**
      * Stop
