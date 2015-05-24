@@ -6,11 +6,23 @@
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
+
 namespace Slim;
 
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Interop\Container\ContainerInterface;
+use Slim\Http\Interfaces\RequestInterface;
+use Slim\Http\Interfaces\ResponseInterface;
+use Slim\Http\Environment as HttpEnvironment;
+use Slim\Http\Headers as HttpHeaders;
+use Slim\Http\Request as HttpRequest;
+use Slim\Http\Response as HttpResponse;
+
+use Slim\Routing\Router;
+use FastRoute\Dispatcher as RouteDispatcher;
+
+use Closure;
+
+use Slim\Exception as SlimException;
+use Exception;
 
 /**
  * App
@@ -67,9 +79,25 @@ class Slim
 
         // request
 
+        $method = $this->environment['REQUEST_METHOD'];
+
+        $request_headers = HttpHeaders::createFromEnvironment($this->environment);
+
+        $body = file_get_contents('php://input'); // stream_get_contents(fopen('php://input', 'r'));
+
+        $this->request = new HttpRequest($method, $request_headers, $body);
+
         // response
+        
+        $protocolVersion = $this->settings['httpVersion'];
+
+        $response_headers = new HttpHeaders(['Content-Type' => 'text/html']);
+
+        $this->response = ( new HttpResponse(200, $response_headers) )->protocolVersion($protocolVersion);
 
         // router
+        
+        $this->router = new Router;
     }
 
     /**
