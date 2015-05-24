@@ -12,6 +12,8 @@ namespace Slim\Http;
 use Slim\Http\Interfaces\RequestInterface;
 use Slim\Http\Interfaces\HeadersInterface;
 
+use Slim\Collection;
+
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -72,6 +74,12 @@ class Request implements RequestInterface
     protected $bodyParams;
 
     /**
+     * The request attributes ( route segment names and values )
+     * @var \Slim\Http\Collection
+     */
+    protected $attributes;
+
+    /**
      * Valid request methods
      * @var string[]
      */
@@ -94,6 +102,8 @@ class Request implements RequestInterface
         $this->headers = $headers;
 
         $this->body = $body;
+
+        $this->attributes = new Collection;
 
         // body params parsers :
 
@@ -450,6 +460,79 @@ class Request implements RequestInterface
         parse_str($queryString, $this->queryParams); // <-- URL decodes data
 
         return $this->queryParams;
+    }
+
+
+    /*******************************************************************************
+     * Attributes
+     ******************************************************************************/
+
+
+    /**
+     * Retrieve attributes derived from the request.
+     *
+     * The request "attributes" may be used to allow injection
+     * of any parameters derived from the route request
+     *
+     * @return array Attributes derived from the request.
+     */
+    public function getAttributes()
+    {
+        return $this->attributes->all();
+    }
+
+    /**
+     * Retrieve a single derived request attribute.
+     * If the attribute has not been previously set, returns the default value as provided.
+     *
+     * @param  string $name
+     * @param  mixed  $default
+     * @return mixed
+     */
+    public function getAttribute( $name, $default = false )
+    {
+        return $this->attributes->get($name, $default);
+    }
+
+    /**
+     * Allows setting a single derived request
+     *
+     * @see    getAttributes()
+     * @param  string $name The attribute name.
+     * @param  mixed  $value The value of the attribute.
+     * @return self
+     */
+    public function attribute( $name, $value )
+    {
+        $this->attributes->set($name, $value);
+
+        return $this;
+    }
+
+    /**
+     * Aallows setting all new derived request attributes
+     *
+     * @param  array $attributes New attributes
+     * @return self
+     */
+    public function attributes( array $attributes )
+    {
+        $this->attributes = new Collection($attributes);
+
+        return $this;
+    }
+
+    /**
+     * Removing a single derived request attribute
+     *
+     * @param  string $name
+     * @return self
+     */
+    public function withoutAttribute( $name )
+    {
+        $this->attributes->remove($name);
+
+        return $this;
     }
 
 
