@@ -7,7 +7,7 @@
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
 
-namespace Slim\Interfaces;
+namespace Slim\Routing\Interfaces;
 
 use Slim\Http\Interfaces\RequestInterface;
 use Slim\Http\Interfaces\ResponseInterface;
