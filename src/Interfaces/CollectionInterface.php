@@ -6,28 +6,31 @@
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
-namespace Slim\Interfaces\Http;
 
-/**
- * Collection Interface
- *
- * @package Slim
- * @author  John Porter
- * @since   3.0.0
- */
-interface CollectionInterface extends \ArrayAccess, \Countable, \IteratorAggregate
+namespace Slim\Interfaces;
+
+use ArrayAccess;
+use Countable;
+use IteratorAggregate;
+
+
+interface CollectionInterface extends ArrayAccess, Countable, IteratorAggregate
 {
-    public function set($key, $value);
 
-    public function get($key, $default = null);
+    public function has( $key );
 
-    public function replace(array $items);
+    public function get( $key );
+
+    public function set( $key, $value );
+
+    public function remove( $key );
+
 
     public function all();
 
-    public function has($key);
-
-    public function remove($key);
+    public function add( array $data );
 
     public function clear();
+
+
 }
