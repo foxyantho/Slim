@@ -310,12 +310,9 @@ class Slim
             ));
 
             // Headers
-            foreach( $headers as $name => $values )
+            foreach( $headers as $name => $value )
             {
-                foreach( $values as $value )
-                {
-                    header(sprintf('%s: %s', $name, $value), false); // multiples
-                }
+                header(sprintf('%s: %s', $name, $value), false); // multiples
             }
         }
 
