@@ -104,7 +104,7 @@ class Router extends RouteCollector implements RouterInterface
 
         return $dispatcher->dispatch(
             $request->getMethod(),
-            $request->getUri()->getPath()
+            $request->getUriPath()
         );
     }
 
