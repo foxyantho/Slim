@@ -172,8 +172,8 @@ class Route implements RouteInterface
      * registered for the route, each callable middleware is invoked in
      * the order specified.
      *
-     * @param RequestInterface $request The current Request object
-     * @param ResponseInterface $response The current Response object
+     * @param RequestInterface       $request  The current Request object
+     * @param ResponseInterface      $response The current Response object
      * @return \Psr\Http\Message\ResponseInterface
      * @throws \Exception
      */

@@ -29,7 +29,6 @@ interface RouterInterface
      * Dispatch router for HTTP request
      *
      * @param  RequestInterface $request The current HTTP request object
-     *
      * @return array
      * @link   https://github.com/nikic/FastRoute/blob/master/src/Dispatcher.php
      */

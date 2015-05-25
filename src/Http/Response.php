@@ -22,7 +22,7 @@ use InvalidArgumentException;
  * according to the PSR-7 standard.
  *
  * @link https://github.com/php-fig/http-message/blob/master/src/MessageInterface.php
- * @link https://github.com/php-fig/http-message/blob/master/src/RequestInterface.php
+ * @link https://github.com/php-fig/http-message/blob/master/src/ResponseInterface.php
  */
 class Response implements ResponseInterface
 {
@@ -37,6 +37,12 @@ class Response implements ResponseInterface
      * @var int
      */
     protected $status = 200;
+    
+    /**
+     * Reason phrase
+     * @var string
+     */
+    protected $reasonPhrase = '';
 
     /**
      * Headers
@@ -123,7 +129,7 @@ class Response implements ResponseInterface
     ];
 
     /**
-     * Create new HTTP response
+     * Create new HTTP response.
      *
      * @param int               $status  The response status code
      * @param HeadersInterface  $headers The response headers
@@ -141,7 +147,7 @@ class Response implements ResponseInterface
      ******************************************************************************/
 
     /**
-     * Get HTTP protocol version
+     * Retrieves the HTTP protocol version as a string.
      *
      * @return string
      */
@@ -153,7 +159,7 @@ class Response implements ResponseInterface
     /**
      * Set the specified HTTP protocol version.
      *
-     * @param  string $version HTTP protocol version
+     * @param string $version HTTP protocol version
      * @return self
      */
     public function protocolVersion( $version )
@@ -168,8 +174,8 @@ class Response implements ResponseInterface
      ******************************************************************************/
 
     /**
-     * Gets the response Status-Code.
-     * The Status-Code is a 3-digit integer result code of the server's attempt
+     * Gets the response status code.
+     * The status code is a 3-digit integer result code of the server's attempt
      * to understand and satisfy the request.
      *
      * @return int Status code.
@@ -180,32 +186,64 @@ class Response implements ResponseInterface
     }
 
     /**
-     * If no Reason-Phrase is specified, implementations MAY choose to default
-     * to the RFC 7231 or IANA recommended reason phrase for the response's
-     * Status-Code.
+     * Set the specified status code and, optionally, reason phrase.
      *
-     * @link  http://tools.ietf.org/html/rfc7231#section-6
-     * @link  http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
-     * @param integer     $code         The 3-digit integer result code to set.
-     * @param null|string $reasonPhrase The reason phrase to use with the
-     *                                  provided status code; if none is provided, implementations MAY
-     *                                  use the defaults as suggested in the HTTP specification.
+     * If no reason phrase is specified, implementations MAY choose to default
+     * to the RFC 7231 or IANA recommended reason phrase for the response's
+     * status code.
+     *
+     * @link http://tools.ietf.org/html/rfc7231#section-6
+     * @link http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+     * @param int $code The 3-digit integer result code to set.
+     * @param string $reasonPhrase The reason phrase to use with the
+     *     provided status code; if none is provided, implementations MAY
+     *     use the defaults as suggested in the HTTP specification.
      * @return self
      * @throws \InvalidArgumentException For invalid status code arguments.
      */
-    public function status( $code )
-    {
+    public function status( $code, $reasonPhrase = '' )
+    {        
+        if( !is_string($reasonPhrase) )
+        {
+            throw new InvalidArgumentException('ReasonPhrase must be a string');
+        }
+
         $this->status = $this->filterStatus($code);
+
+        $this->reasonPhrase = $reasonPhrase;
 
         return $this;
     }
 
     /**
-     * Filter HTTP status code
+     * Gets the response reason phrase associated with the status code.
      *
-     * @param  int $status HTTP status code
+     * Because a reason phrase is not a required element in a response
+     * status line, the reason phrase value MAY be null. Implementations MAY
+     * choose to return the default RFC 7231 recommended reason phrase (or those
+     * listed in the IANA HTTP Status Code Registry) for the response's
+     * status code.
+     *
+     * @link http://tools.ietf.org/html/rfc7231#section-6
+     * @link http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+     * @return string Reason phrase; must return an empty string if none present.
+     */
+    public function getReasonPhrase()
+    {
+        if( $this->reasonPhrase )
+        {
+            return $this->reasonPhrase;
+        }
+
+        return static::$messages[$this->status];
+    }
+
+    /**
+     * Filter HTTP status code.
+     *
+     * @param  int $status HTTP status code.
      * @return int
-     * @throws \InvalidArgumentException If invalid HTTP status code
+     * @throws \InvalidArgumentException If invalid HTTP status code.
      */
     protected function filterStatus( $code )
     {
@@ -217,30 +255,14 @@ class Response implements ResponseInterface
         return $code;
     }
 
-    /**
-     * Gets the response Reason-Phrase, a short textual description of the Status-Code.
-     *
-     * Because a Reason-Phrase is not a required element in a response
-     * Status-Line, the Reason-Phrase value MAY be null. Implementations MAY
-     * choose to return the default RFC 7231 recommended reason phrase (or those
-     * listed in the IANA HTTP Status Code Registry) for the response's
-     * Status-Code.
-     *
-     * @link   http://tools.ietf.org/html/rfc7231#section-6
-     * @link   http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
-     * @return string|null Reason phrase, or null if unknown.
-     */
-    public function getReasonPhrase()
-    {
-        return isset(static::$messages[$this->status]) ? static::$messages[$this->status] : null;
-    }
 
     /*******************************************************************************
      * Headers
      ******************************************************************************/
 
+
     /**
-     * Retrieves all message headers.
+     * Retrieves all message header values.
      *
      * The keys represent the header name as it will be sent over the wire, and
      * each value is an array of strings associated with the header.
@@ -261,7 +283,8 @@ class Response implements ResponseInterface
      * exact case in which headers were originally specified.
      *
      * @return array Returns an associative array of the message's headers. Each
-     *               key MUST be a header name, and each value MUST be an array of strings.
+     *     key MUST be a header name, and each value MUST be an array of strings
+     *     for that header.
      */
     public function getHeaders()
     {
@@ -283,7 +306,7 @@ class Response implements ResponseInterface
      * Retrieves a header by the given name as an array of strings.
      *
      * @param  string   $name
-     * @return string[]
+     * @return string[] array of headers or an empty array
      */
     public function getHeader( $name )
     {
@@ -291,17 +314,22 @@ class Response implements ResponseInterface
     }
 
     /**
-     * Retrieve a header by the given name, as a string.
+     * Retrieves a comma-separated string of the values for a single header.
      *
      * This method returns all of the header values of the given
      * header name as a string concatenated together using a comma.
      *
-     * Not all header values may be appropriately represented using
-     * comma concatenation. For such headers, use getHeader instead
+     * NOTE Not all header values may be appropriately represented using
+     * comma concatenation. For such headers, use getHeader() instead
      * and supply your own delimiter when concatenating.
      *
-     * @param  string $name Case-insensitive header name.
-     * @return string
+     * If the header does not appear in the message, this method MUST return
+     * an empty string.
+     *
+     * @param string $name Case-insensitive header field name.
+     * @return string A string of values as provided for the given header
+     *    concatenated together using a comma. If the header does not appear in
+     *    the message, this method MUST return an empty string.
      */
     public function getHeaderLine( $name )
     {
@@ -311,9 +339,10 @@ class Response implements ResponseInterface
     /**
      * Set a header to add to the current response
      *
-     * @param  string          $header Header name
-     * @param  string|string[] $value  Header value(s).
+     * @param string $name Case-insensitive header field name.
+     * @param string|string[] $value Header value(s).
      * @return self
+     * @throws \InvalidArgumentException for invalid header names or values.
      */
     public function header( $key, $value )
     {
@@ -325,12 +354,12 @@ class Response implements ResponseInterface
     /**
      * Remove a header from the current response
      *
-     * @param  string $header HTTP header to remove
+     * @param string $name Case-insensitive header field name to remove.
      * @return self
      */
-    public function withoutHeader( $header )
+    public function withoutHeader( $name )
     {
-        $this->headers->remove($header);
+        $this->headers->remove($name);
 
         return $this;
     }
@@ -342,7 +371,7 @@ class Response implements ResponseInterface
 
 
     /**
-     * Write data to the response body
+     * Write data to the response body.
      *
      * @param string $data
      * @return self
@@ -409,13 +438,11 @@ class Response implements ResponseInterface
 
 
     /**
-     * Redirect
+     * Redirect : prepares the response object to return an HTTP Redirect 
+     * response to the client.
      *
-     * This method prepares the response object to return an HTTP Redirect response
-     * to the client.
-     *
-     * @param  string $url    The redirect destination
-     * @param  int    $status The redirect HTTP status code
+     * @param  string $url    The redirect destination.
+     * @param  int    $status The redirect HTTP status code.
      * @return self
      */
     public function redirect( $url, $status = 302 )
@@ -525,7 +552,7 @@ class Response implements ResponseInterface
     }
 
     /**
-     * Convert response to string
+     * Convert response to string.
      *
      * @return string
      */
