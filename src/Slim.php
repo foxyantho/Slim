@@ -85,10 +85,10 @@ class Slim
 
         $body = file_get_contents('php://input'); // stream_get_contents(fopen('php://input', 'r'));
 
-        $this->request = new HttpRequest($method, $request_headers, $body);
+        $this->request = new HttpRequest($method, $request_headers, $this->environment, $body);
 
         // response
-        
+
         $protocolVersion = $this->settings['httpVersion'];
 
         $response_headers = new HttpHeaders(['Content-Type' => 'text/html']);
@@ -96,7 +96,7 @@ class Slim
         $this->response = ( new HttpResponse(200, $response_headers) )->protocolVersion($protocolVersion);
 
         // router
-        
+
         $this->router = new Router;
     }
 

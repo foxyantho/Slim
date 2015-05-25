@@ -11,6 +11,7 @@ namespace Slim\Http;
 
 use Slim\Http\Interfaces\RequestInterface;
 use Slim\Http\Interfaces\HeadersInterface;
+use Slim\Http\Interfaces\EnvironmentInterface;
 
 use Slim\Collection;
 
@@ -48,6 +49,12 @@ class Request implements RequestInterface
      * @var \Slim\Http\Interfaces\HeadersInterface
      */
     protected $headers;
+
+    /**
+     * server environment variables at the time the request was created.
+     * @var array
+     */
+    protected $serverParams;
 
     /**
      * the request body object
@@ -95,13 +102,17 @@ class Request implements RequestInterface
      * @param HeadersInterface  $headers
      * @param mixed             $body
      */
-    public function __construct( $method, HeadersInterface $headers, $body )
+    public function __construct( $method, HeadersInterface $headers, EnvironmentInterface $serverParams, $body )
     {
         $this->method = $this->filterMethod($method);
 
         $this->headers = $headers;
 
+        $this->serverParams = $serverParams;
+
         $this->body = $body;
+
+        // route attributes
 
         $this->attributes = new Collection;
 
@@ -290,6 +301,7 @@ class Request implements RequestInterface
      * Headers
      ******************************************************************************/
 
+
     /**
      * Retrieves all message headers.
      *
@@ -430,6 +442,135 @@ class Request implements RequestInterface
 
 
     /*******************************************************************************
+     * Uri
+     ******************************************************************************/
+
+
+    /**
+     * Retrieve the authority portion of the URI.
+     * If the port component is not set or is the standard port for the current
+     * scheme, it SHOULD NOT be included.
+     *
+     * @return string
+     */
+    public function getUriAuthority()
+    {
+        // Authority: Host
+
+        if( $this->serverParams['HTTP_X_FORWARDED_HOST'] ) // proxy
+        {
+            return trim(current(explode(',', $this->serverParams['HTTP_X_FORWARDED_HOST'])));
+        }
+        
+        if( $this->serverParams['HTTP_HOST'] ) // http header
+        {
+            return $this->serverParams['HTTP_HOST'];
+        }
+        
+        return $this->serverParams['SERVER_NAME'];
+    }
+
+    /**
+     * Retrieve the path segment of the URI: the folder from where the project is running.
+     * If there is no path ( load from root folder -> equal "/", or "." ) return void.
+     * 
+     * @return string
+     */
+    public function getUriBasePath()
+    {
+        $requestScriptName = $this->serverParams['SCRIPT_NAME']; // "/index.php", "/folder/index.php"
+
+        if( !in_array($basePath = dirname($requestScriptName), ['/', '.']) )
+        {
+            return $basePath;
+        }
+    }
+
+    /**
+     * Retrieve the path segment of the URI.
+     * This method MUST return a string; if no path is present it MUST return the string "/".
+     *
+     * @return string
+     */
+    public function getUriPath()
+    {
+        $requestUri = urldecode($this->serverParams['REQUEST_URI']);
+
+        if( $basePath = $this->getUriBasePath() )
+        {
+            // forced rewrite engine on
+            $requestUri = substr($requestUri, strlen($basePath)); // remove base path aka virtualPath
+        }
+
+        return '/' . ltrim($requestUri, '/');
+    }
+
+    /**
+     * Get website's root uri ( //website/folder/ ) with ommiting http scheme
+     * 
+     * @return string
+     */
+    public function getRootUri()
+    {
+        return '//' . $this->getAuthority() . $this->getBasePath() . '/';
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /*******************************************************************************
      * Query Params
      ******************************************************************************/
 
@@ -455,11 +596,31 @@ class Request implements RequestInterface
 
         // parse query string 'x=x&y[]=y'
 
-        $queryString = urldecode($this->getHeader('QUERY_STRING'));
+        $queryString = urldecode($this->serverParams['QUERY_STRING']);
 
         parse_str($queryString, $this->queryParams); // <-- URL decodes data
 
         return $this->queryParams;
+    }
+
+
+    /*******************************************************************************
+     * Server Params
+     ******************************************************************************/
+
+
+    /**
+     * Retrieve server parameters.
+     *
+     * Retrieves data related to the incoming request environment,
+     * typically derived from PHP's $_SERVER superglobal. The data IS NOT
+     * REQUIRED to originate from $_SERVER.
+     *
+     * @return array
+     */
+    public function getServerParams()
+    {
+        return $this->serverParams;
     }
 
 
