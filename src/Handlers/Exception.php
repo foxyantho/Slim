@@ -48,7 +48,7 @@ class Exception implements HandlerInterface
         }
 
         $output = sprintf(
-            "<html>
+            '<html>
                 <head>
                     <title>%s</title>
                     <style>
@@ -61,7 +61,7 @@ class Exception implements HandlerInterface
                     <h1>%s</h1>
                     %s
                 </body>
-            </html>",
+            </html>',
             $title,
             $title,
             $html
