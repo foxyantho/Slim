@@ -296,7 +296,7 @@ class Response implements ResponseInterface
      * This method returns all of the header values of the given
      * header name as a string concatenated together using a comma.
      *
-     * NOTE: Not all header values may be appropriately represented using
+     * Not all header values may be appropriately represented using
      * comma concatenation. For such headers, use getHeader instead
      * and supply your own delimiter when concatenating.
      *
