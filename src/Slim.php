@@ -19,10 +19,14 @@ use Slim\Http\Response as HttpResponse;
 use Slim\Routing\Router;
 use FastRoute\Dispatcher as RouteDispatcher;
 
+use Slim\Handlers\Exception as ExceptionHandler;
+use Slim\Handlers\NotFound as NotFoundHandler;
+use Slim\Handlers\NotAllowed as NotAllowedHandler;
+
 use Closure;
 
-use Slim\Exception as SlimException;
 use Exception;
+use Slim\Exception as SlimException;
 
 /**
  * App
@@ -45,8 +49,10 @@ use Exception;
  */
 class Slim
 {
+
     use ResolveCallableTrait;
     use MiddlewareAwareTrait;
+
 
     /**
      * Current version
@@ -65,6 +71,14 @@ class Slim
     protected $response;
 
     protected $router;
+
+
+    protected $exceptionHandler;
+
+    protected $notFoundHandler;
+
+    protected $notAllowedHandler;
+
 
 
     public function __construct( array $userSettings = [] )
@@ -98,6 +112,14 @@ class Slim
         // router
 
         $this->router = new Router;
+
+        // error handlers @TODO wrap into a closure
+
+        $this->exceptionHandler = new ExceptionHandler;
+
+        $this->notFoundHandler = new NotFoundHandler;
+
+        $this->notAllowedHandler = new NotAllowedHandler;
     }
 
     /**
@@ -202,7 +224,6 @@ class Slim
      * @param  string[] $methods  Numeric array of HTTP method names
      * @param  string   $pattern  The route URI pattern
      * @param  mixed    $callable The route callback routine
-     *
      * @return \Slim\Interfaces\RouteInterface
      */
     public function map( array $methods, $pattern, $callable )
@@ -221,13 +242,10 @@ class Slim
 
 
     /**
-     * Stop
-     *
-     * This method stops the application and sends the provided
+     * Stop : stops the application and sends the provided
      * Response object to the HTTP client.
      *
      * @param  ResponseInterface $response
-     *
      * @throws \Slim\Exception
      */
     public function stop( ResponseInterface $response )
@@ -236,16 +254,13 @@ class Slim
     }
 
     /**
-     * Halt
-     *
-     * This method prepares a new HTTP response with a specific
+     * Halt : prepares a new HTTP response with a specific
      * status and message. The method immediately halts the
      * application and returns a new response with a specific
      * status and message.
      *
      * @param  int    $status  The desired HTTP status
      * @param  string $message The desired HTTP message
-     *
      * @throws \Slim\Exception
      */
     public function halt( $status, $message = '' )
@@ -262,9 +277,7 @@ class Slim
      *******************************************************************************/
 
     /**
-     * Run application
-     *
-     * This method traverses the application middleware stack,
+     * Run application : traverses the application middleware stack,
      * and it returns the resultant Response object to the HTTP client.
      */
     public function run()
@@ -284,7 +297,7 @@ class Slim
         }
         catch( Exception $e )
         {
-            $errorHandler = 'errorHandler'; // @FIXME
+            $errorHandler = $this->errorHandler;
 
             $response = $errorHandler($request, $response, $e);
         }
@@ -324,16 +337,13 @@ class Slim
     }
 
     /**
-     * Invoke application
-     *
-     * This method implements the middleware interface. It receives
-     * Request and Response objects, and it returns a Response object
-     * after dispatching the Request object to the appropriate Route
-     * callback routine.
+     * Invoke application : implements the middleware interface.
+     * It receives Request and Response objects, and it returns a
+     * Response object after dispatching the Request object to the
+     * appropriate Route callback routine.
      *
      * @param  RequestInterface  $request  The most recent Request object
      * @param  ResponseInterface $response The most recent Response object
-     *
      * @return ResponseInterface
      */
     public function __invoke( RequestInterface $request, ResponseInterface $response )
@@ -359,14 +369,14 @@ class Slim
 
         if( $routeInfo[0] === RouteDispatcher::NOT_FOUND )
         {
-            $notFoundHandler = 'notFoundHandler'; // @FIXME
+            $notFoundHandler = $this->notFoundHandler;
 
             return $notFoundHandler($request, $response);
         }
 
         if( $routeInfo[0] === RouteDispatcher::METHOD_NOT_ALLOWED )
         {
-            $notAllowedHandler = 'notAllowedHandler'; // @FIXME
+            $notAllowedHandler = $this->notAllowedHandler;
 
             return $notAllowedHandler($request, $response, $routeInfo[1]);
         }
