@@ -209,11 +209,6 @@ class Slim
     {
         $callable = $this->resolveCallable($callable);
 
-        if( $callable instanceof Closure )
-        {
-            $callable = $callable->bindTo($this);
-        }
-
         $route = $this->router->map($methods, $pattern, $callable);
 
         return $route;

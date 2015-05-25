@@ -9,6 +9,8 @@
 
 namespace Slim;
 
+use Closure;
+
 use RuntimeException;
 
 
@@ -35,20 +37,27 @@ trait ResolveCallableTrait
             return $callable;
         }
 
-        if( is_string($callable) ) // && strpos($callable, ':')
+        $parent = $this;
+
+        if( $callable instanceof Closure )
         {
+            return $callable->bindTo($parent);
+        }
+
+        if( is_string($callable) && strpos($callable, ':') )
+        {
+            // check if a controller ( \Class:function )
+
             if( preg_match('!^([^\:]+)\:([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)$!', $callable, $matches) )
             {
                 // wrap it into a closure
 
                 $class = $matches[1];
                 $method = $matches[2];
-                
-                $parent = $this; // pass parent argument to callable constructor
 
                 return function() use ( $parent, $class, $method )
                 {
-                    $obj = new $class($parent);
+                    $obj = new $class($parent); // pass parent argument to callable constructor
 
                     return call_user_func_array([$obj, $method], func_get_args());
                 };
