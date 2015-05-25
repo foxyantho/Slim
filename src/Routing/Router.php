@@ -56,9 +56,9 @@ class Router extends RouteCollector implements RouterInterface
      */
     public function __construct( RouteParser $parser = null, RouteDataGenerator $generator = null )
     {
-        $parser = $parser ? $parser : new RouteParserStd;
+        $parser = $parser ?: new RouteParserStd;
 
-        $generator = $generator ? $generator : new RouteDataGroupCountBased;
+        $generator = $generator ?: new RouteDataGroupCountBased;
 
         parent::__construct($parser, $generator);
     }
