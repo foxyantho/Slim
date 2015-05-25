@@ -512,7 +512,7 @@ class Request implements RequestInterface
      */
     public function getRootUri()
     {
-        return '//' . $this->getAuthority() . $this->getBasePath() . '/';
+        return '//' . $this->getUriAuthority() . $this->getUriBasePath() . '/';
     }
 
 
