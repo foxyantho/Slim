@@ -6,11 +6,13 @@
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
  * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
  */
+
 namespace Slim\Handlers;
 
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Slim\Http\Body;
+use Slim\Handlers\Interfaces\HandlerInterface;
+use Slim\Http\Interfaces\RequestInterface;
+use Slim\Http\Interfaces\ResponseInterface;
+
 
 /**
  * Default not allowed handler
@@ -18,8 +20,9 @@ use Slim\Http\Body;
  * This is the default Slim application error handler. All it does is output
  * a clean and simple HTML page with diagnostic information.
  */
-class NotAllowed
+class NotAllowed implements HandlerInterface
 {
+
     /**
      * Invoke error handler
      *
@@ -29,13 +32,33 @@ class NotAllowed
      *
      * @return ResponseInterface
      */
-    public function __invoke(RequestInterface $request, ResponseInterface $response, array $methods)
+    public function __invoke( RequestInterface $request, ResponseInterface $response, array $methods = [] )
     {
         return $response
-                ->withStatus(405)
-                ->withHeader('Content-type', 'text/html')
-                ->withHeader('Allow', implode(', ', $methods))
-                ->withBody(new Body(fopen('php://temp', 'r+')))
-                ->write('<p>Method not allowed. Must be one of: ' . implode(', ', $methods) . '</p>');
+                ->status(405)
+                ->header('Content-type', 'text/html')
+                ->header('Allow', implode(', ', $methods))
+                ->body('Method not allowed. Must be one of: ' . $this->allowedMethodsAsString($methods));
     }
+
+    /**
+     * Return the allowed methods as a string
+     * example: "get, post or put"
+     * 
+     * @param  array  $methods
+     * @return string
+     */
+    protected function allowedMethodsAsString( array $methods )
+    {
+        $last = array_pop($methods);
+
+        if( $methods )
+        {
+            return implode(', ', $methods) . ' or ' . $last;
+        }
+
+        return $last;
+    }
+
+
 }
