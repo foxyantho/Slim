@@ -8,7 +8,7 @@
  */
 namespace Slim\Http;
 
-use Slim\Interfaces\Http\CookiesInterface;
+use Slim\Http\Interfaces\CookiesInterface;
 
 /**
  * Cookie helper
