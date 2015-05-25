@@ -104,7 +104,7 @@ class Request implements RequestInterface
      */
     public function __construct( $method, HeadersInterface $headers, EnvironmentInterface $serverParams, $body )
     {
-        $this->method = $this->filterMethod($method);
+        $this->method = $this->filterMethod($method); // @FIXME:wrap exception
 
         $this->headers = $headers;
 
@@ -365,7 +365,7 @@ class Request implements RequestInterface
      * case-insensitive header name as a string concatenated together using
      * a comma.
      *
-     * NOTE: Not all header values may be appropriately represented using
+     * Not all header values may be appropriately represented using
      * comma concatenation. For such headers, use getHeader instead
      * and supply your own delimiter when concatenating.
      *
@@ -522,11 +522,9 @@ class Request implements RequestInterface
 
 
     /**
-     * Retrieve query string arguments.
+     * Retrieve query string arguments : the deserialized query string arguments, if any.
      *
-     * Retrieves the deserialized query string arguments, if any.
-     *
-     * Note: the query params might not be in sync with the URL or server
+     * The query params might not be in sync with the URL or server
      * params. If you need to ensure you are only getting the original
      * values, you may need to parse the composed URL or the `QUERY_STRING`
      * composed in the server params.

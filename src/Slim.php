@@ -113,7 +113,7 @@ class Slim
 
         $this->router = new Router;
 
-        // error handlers @TODO wrap into a closure
+        // error handlers @TODO: wrap into a closure
 
         $this->exceptionHandler = new ExceptionHandler;
 
