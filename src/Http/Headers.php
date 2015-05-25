@@ -41,12 +41,12 @@ class Headers extends Collection implements HeadersInterface
      * Create new headers collection with data extracted from
      * the application Environment object
      *
-     * @param  Environment $environment The Slim application Environment
+     * @param  Environment $environment
      * @return self
      */
     public static function createFromEnvironment( EnvironmentInterface $environment )
     {
-        $data = [];
+        $headers = [];
 
         foreach( $environment as $key => $value )
         {
@@ -56,12 +56,13 @@ class Headers extends Collection implements HeadersInterface
             {
                 if( $key !== 'HTTP_CONTENT_LENGTH' )
                 {
-                    $data[$key] =  $value;
+                    // replace '_' by ' ', ucwords, re-replace ' ' by '-'
+                    $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))))] = $value;
                 }
             }
         }
 
-        return new static($data);
+        return new static($headers);
     }
 
 

@@ -95,7 +95,7 @@ class Slim
 
         $method = $this->environment['REQUEST_METHOD'];
 
-        $request_headers = HttpHeaders::createFromEnvironment($this->environment);
+        $request_headers = HttpHeaders::createFromEnvironment($this->environment); // getallheaders() for apache
 
         $body = file_get_contents('php://input'); // stream_get_contents(fopen('php://input', 'r'));
 
