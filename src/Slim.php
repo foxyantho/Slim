@@ -113,13 +113,19 @@ class Slim
 
         $this->router = new Router;
 
-        // error handlers @TODO: wrap into a closure
+        // error handlers
 
-        $this->exceptionHandler = new ExceptionHandler;
+        $this->exceptionHandler = function() {
+            return call_user_func_array(new ExceptionHandler, func_get_args());
+        };
 
-        $this->notFoundHandler = new NotFoundHandler;
+        $this->notFoundHandler = function() {
+            return call_user_func_array(new NotFoundHandler, func_get_args());
+        };
 
-        $this->notAllowedHandler = new NotAllowedHandler;
+        $this->notAllowedHandler = function() {
+            return call_user_func_array(new NotAllowedHandler, func_get_args());
+        };
     }
 
     /**
