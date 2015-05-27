@@ -43,7 +43,7 @@ use Slim\Exception as SlimException;
  * @property-read \Psr\Http\Message\RequestInterface $request
  * @property-read \Psr\Http\Message\ResponseInterface $response
  * @property-read \Slim\Interfaces\RouterInterface $router
- * @property-read callable $errorHandler
+ * @property-read callable $exceptionHandler
  * @property-read callable function($request, $response) $notFoundHandler
  * @property-read callable function($request, $response, $allowedHttpMethods) $notAllowedHandler
  */
@@ -316,9 +316,9 @@ class Slim
         }
         catch( Exception $e )
         {
-            $errorHandler = $this->errorHandler;
+            $exceptionHandler = $this->exceptionHandler;
 
-            $response = $errorHandler($request, $response, $e);
+            $response = $exceptionHandler($request, $response, $e);
         }
 
         // Finalize response : fetch status, header, and body
