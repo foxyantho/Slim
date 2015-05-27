@@ -60,7 +60,8 @@ trait ResolveCallableTrait
                 {
                     $handler = new $class($request, $response);
 
-                    return call_user_func_array([$handler, $method], func_get_args());
+                    // first two arguments are always req & res
+                    return call_user_func_array([$handler, $method], array_slice(func_get_args(), 2));
                 };
             }
 

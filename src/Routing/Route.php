@@ -186,9 +186,10 @@ class Route implements RouteInterface
 
             ob_start();
 
-            $newReponse = $callable($request, $response, $request->getAttributes());
+            $newReponse = $callable($request, $response, $request->getAttributes()); // @FIXME: don't send empty array
             //$newResponse = call_user_func_array($callable, [$request, $response] + $this->parsedArgs);
-            // @TODO @FIXME use ?
+
+            // @TODO: prefering using return response
             $output = ob_get_clean();
 
         }
