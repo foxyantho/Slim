@@ -657,29 +657,20 @@ class Request implements RequestInterface
     }
 
     /**
-     * Retrieve any parameters provided in the request body.
-     *
-     * If the request Content-Type is application/x-www-form-urlencoded and the
-     * request method is POST, this method MUST return the contents of $_POST.
-     *
-     * Otherwise, this method may return any results of deserializing
-     * the request body content; as parsing returns structured content, the
-     * potential types MUST be arrays or objects only. A null value indicates
-     * the absence of body content.
-     *
-     * @return null|array|object The deserialized body parameters, if any.
-     *                           These will typically be an array or object.
+     * Build the body params and send them into their array
+     * 
+     * @throws RuntimeException
      */
-    public function getBodyParams()
+    protected function buildBodyParams()
     {
-        if( $this->bodyParams )
-        {
-            return $this->bodyParams;
-        }
-
         if( !$this->body )
         {
-            return;
+            return; // no body, can't process it
+        }
+
+        if( $this->bodyParams )
+        {
+            return; // alread set
         }
 
         $contentType = $this->getContentType();
@@ -697,8 +688,41 @@ class Request implements RequestInterface
 
             $this->bodyParams = $parsed;
         }
+    }
+
+    /**
+     * Retrieve any parameters provided in the request body.
+     *
+     * If the request Content-Type is application/x-www-form-urlencoded and the
+     * request method is POST, this method MUST return the contents of $_POST.
+     *
+     * Otherwise, this method may return any results of deserializing
+     * the request body content; as parsing returns structured content, the
+     * potential types MUST be arrays or objects only. A null value indicates
+     * the absence of body content.
+     *
+     * @return null|array|object The deserialized body parameters, if any.
+     *                           These will typically be an array or object.
+     */
+    public function getBodyParams()
+    {
+        $this->buildBodyParams();
 
         return $this->bodyParams;
+    }
+
+    /**
+     * Retrieve a parameter provided in the request body.
+     * 
+     * @param  string  $key
+     * @param  mixed   $default
+     * @return mixed
+     */
+    public function input( $key, $default = false )
+    {
+        $this->buildBodyParams();
+
+        return isset($this->bodyParams[$key]) ? $this->bodyParams[$key] : $default;
     }
 
     /**
