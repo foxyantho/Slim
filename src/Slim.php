@@ -226,10 +226,9 @@ class Slim
      *
      * @param  string $pattern  The route URI pattern
      * @param  mixed  $callable The route callback routine
-     *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function any($pattern, $callable)
+    public function any( $pattern, $callable )
     {
         return $this->map(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], $pattern, $callable);
     }
