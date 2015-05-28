@@ -186,8 +186,7 @@ class Route implements RouteInterface
 
             ob_start();
 
-            $newReponse = $callable($request, $response, $request->getAttributes()); // @FIXME: don't send empty array
-            //$newResponse = call_user_func_array($callable, [$request, $response] + $this->parsedArgs);
+            $newResponse = call_user_func_array($callable, [$request, $response] + $request->getAttributes());
 
             // @TODO: prefering using return response
             $output = ob_get_clean();
@@ -201,15 +200,15 @@ class Route implements RouteInterface
         }
         
         // if route callback returns a ResponseInterface, then use it
-        if( $newReponse instanceof ResponseInterface )
+        if( $newResponse instanceof ResponseInterface )
         {
-            $response = $newReponse;
+            $response = $newResponse;
         }
 
         // if route callback retuns a string, then append it to the response
-        if( is_string($newReponse) )
+        if( is_string($newResponse) )
         {
-            $response->body($newReponse);
+            $response->body($newResponse);
         }
         
         // append output buffer content if there is any
