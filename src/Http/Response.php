@@ -376,7 +376,7 @@ class Response implements ResponseInterface
      * @param string $data
      * @return self
      */
-    public function body( $content )
+    public function write( $content )
     {
         $this->body = $content;
 
@@ -418,7 +418,7 @@ class Response implements ResponseInterface
             $this->withoutHeader('Content-Type');
             $this->withoutHeader('Content-Length');
 
-            $this->body(null);
+            $this->write(null);
         }
         else
         {

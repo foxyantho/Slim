@@ -282,7 +282,7 @@ class Slim
     {
         $response = $this->response->status($status);
 
-        $response->body($message);
+        $response->write($message);
 
         $this->stop($response);
     }
@@ -376,7 +376,7 @@ class Slim
             $attributes = $routeInfo[2];
 
             array_walk($attributes, function( &$v, $k ) {
-                $v = urldecode($v);
+                $v = urldecode($v);//@TODO:x
             });
 
             return $routeInfo[1]($request->attributes($attributes), $response);

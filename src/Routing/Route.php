@@ -208,13 +208,13 @@ class Route implements RouteInterface
         // if route callback retuns a string, then append it to the response
         if( is_string($newResponse) )
         {
-            $response->body($newResponse);
+            $response->write($newResponse);
         }
         
         // append output buffer content if there is any
         if( $output )
         {
-            $response->body($output);
+            $response->write($output);
         }
 
 

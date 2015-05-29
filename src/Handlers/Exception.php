@@ -70,7 +70,7 @@ class Exception implements HandlerInterface
         return $response
                 ->status(500)
                 ->header('Content-Type', 'text/html')
-                ->body($output);
+                ->write($output);
     }
 
     protected function renderException( \Exception $exception )

@@ -57,7 +57,7 @@ class NotFound implements HandlerInterface
 
         return $response->status(404)
                         ->header('Content-Type', 'text/html')
-                        ->body($output);
+                        ->write($output);
     }
 
 

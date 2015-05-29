@@ -38,7 +38,7 @@ class NotAllowed implements HandlerInterface
                 ->status(405)
                 ->header('Content-type', 'text/html')
                 ->header('Allow', implode(', ', $methods))
-                ->body('Method not allowed. Must be one of: ' . $this->allowedMethodsAsString($methods));
+                ->Write('Method not allowed. Must be one of: ' . $this->allowedMethodsAsString($methods));
     }
 
     /**
