@@ -32,11 +32,11 @@ use Slim\Exception as SlimException;
  * App
  *
  * This is the primary class with which you instantiate,
- * configure, and run a Slim Framework application. 
+ * configure, and run a Slim Framework application.
  * The \Slim\App class also accepts Slim Framework middleware.
  *
  * @property-read array $settings App settings
- * @property-read \Slim\Interfaces\Http\EnvironmentInterface $environment 
+ * @property-read \Slim\Interfaces\Http\EnvironmentInterface $environment
  * @property-read \Psr\Http\Message\RequestInterface $request
  * @property-read \Psr\Http\Message\ResponseInterface $response
  * @property-read \Slim\Interfaces\RouterInterface $router
@@ -220,7 +220,7 @@ class Slim
     {
         return $this->map(['OPTIONS'], $pattern, $callable);
     }
-    
+
     /**
      * Add route for any HTTP method
      *
