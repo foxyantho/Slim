@@ -373,13 +373,9 @@ class Slim
         {
             // URL decode the named arguments from the router
 
-            $attributes = $routeInfo[2];
+            $attributes = array_map('urldecode', $routeInfo[2]);
 
-            array_walk($attributes, function( &$v, $k ) {
-                $v = urldecode($v);//@TODO:x
-            });
-
-            return $routeInfo[1]($request->attributes($attributes), $response);
+            return $routeInfo[1]($request->attributes($attributes), $response); //TODO: override attributes
         }
 
         if( $routeInfo[0] === RouteDispatcher::NOT_FOUND )
