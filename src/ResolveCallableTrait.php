@@ -58,10 +58,9 @@ trait ResolveCallableTrait
 
                 return function( RequestInterface $request, ResponseInterface $response ) use ( $class, $method )
                 {
-                    $handler = new $class($request, $response);
-
                     // first two arguments are always req & res
-                    return call_user_func_array([$handler, $method], array_slice(func_get_args(), 2));
+
+                    return call_user_func_array([new $class, $method], func_get_args());
                 };
             }
 
