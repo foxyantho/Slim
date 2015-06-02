@@ -46,10 +46,10 @@ use Slim\Exception as SlimException;
  */
 class Slim
 {
-
     use ResolveCallableTrait;
-    use MiddlewareAwareTrait;
-
+    use MiddlewareAwareTrait {
+        add as addMiddleware;
+    }
 
     /**
      * Current version
@@ -255,6 +255,19 @@ class Slim
      * Application flow methods
      *******************************************************************************/
 
+    /**
+     * Add middleware
+     * This method prepends new middleware to the route's middleware stack.
+     * 
+     * @param  mixed    $callable
+     * @return RouteInterface
+     */
+    public function add( $callable )
+    {
+        $callable = $this->resolveCallable($callable);
+
+        return $this->addMiddleware($callable);
+    }
 
     /**
      * Stop : stops the application and sends the provided
