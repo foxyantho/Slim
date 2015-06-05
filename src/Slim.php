@@ -46,10 +46,13 @@ use Slim\Exception as SlimException;
  */
 class Slim
 {
+
     use ResolveCallableTrait;
+
     use MiddlewareAwareTrait {
         add as addMiddleware;
     }
+
 
     /**
      * Current version
@@ -262,6 +265,7 @@ class Slim
      * @param  mixed    $callable
      * @return RouteInterface
      */
+    // @TODO: deprecated
     public function add( $callable )
     {
         $callable = $this->resolveCallable($callable);
@@ -276,6 +280,7 @@ class Slim
      * @param  ResponseInterface $response
      * @throws \Slim\Exception
      */
+    // @TODO: deprecated
     public function stop( ResponseInterface $response )
     {
         throw new SlimException($response);
@@ -291,6 +296,7 @@ class Slim
      * @param  string $message The desired HTTP message
      * @throws \Slim\Exception
      */
+    // @TODO: deprecated
     public function halt( $status, $message = '' )
     {
         $response = $this->response->status($status);
