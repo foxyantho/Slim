@@ -15,7 +15,6 @@ use Slim\Interfaces\CollectionInterface;
  * Environment Interface
  *
  * @package Slim
- * @author  John Porter
  * @since   3.0.0
  */
 interface EnvironmentInterface extends CollectionInterface

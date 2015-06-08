@@ -14,9 +14,9 @@ use Slim\Http\Interfaces\RequestInterface;
 
 use FastRoute\RouteCollector;
 use FastRoute\RouteParser;
-use FastRoute\DataGenerator as RouteDataGenerator;
-use FastRoute\RouteParser\Std as RouteParserStd;
-use FastRoute\DataGenerator\GroupCountBased as RouteDataGroupCountBased;
+use FastRoute\DataGenerator;
+use FastRoute\RouteParser\Std as StdParser;
+use FastRoute\DataGenerator\GroupCountBased as GroupCountBasedGenerator;
 use FastRoute\Dispatcher\GroupCountBased as RouteDispatcherGroupCountBased;
 
 use InvalidArgumentException;
@@ -54,11 +54,11 @@ class Router extends RouteCollector implements RouterInterface
      * @param \FastRoute\RouteParser   $parser
      * @param \FastRoute\DataGenerator $generator
      */
-    public function __construct( RouteParser $parser = null, RouteDataGenerator $generator = null )
+    public function __construct( RouteParser $parser = null, DataGenerator $generator = null )
     {
-        $parser = $parser ?: new RouteParserStd;
+        $parser = $parser ?: new StdParser;
 
-        $generator = $generator ?: new RouteDataGroupCountBased;
+        $generator = $generator ?: new GroupCountBasedGenerator;
 
         parent::__construct($parser, $generator);
     }
@@ -70,6 +70,7 @@ class Router extends RouteCollector implements RouterInterface
      * @param  string   $pattern The route pattern
      * @param  callable $handler The route callable
      * @return \Slim\Interfaces\RouteInterface
+     * @throws InvalidArgumentException if the route pattern isn't a string
      */
     public function map( $methods, $pattern, $handler )
     {
@@ -100,7 +101,7 @@ class Router extends RouteCollector implements RouterInterface
      */
     public function dispatch( RequestInterface $request )
     {
-        $dispatcher = new RouteDispatcherGroupCountBased($this->getData());
+        $dispatcher = new GroupCountBasedDispatcher($this->getData());
 
         return $dispatcher->dispatch(
             $request->getMethod(),
@@ -113,7 +114,7 @@ class Router extends RouteCollector implements RouterInterface
      *
      * @param  string $name        Route name
      * @param  array  $data        Route URI segments replacement data
-     * @param  array  $queryParams Optional query string parameters 
+     * @param  array  $queryParams Optional query string parameters
      *
      * @return string
      * @throws \RuntimeException         If named route does not exist

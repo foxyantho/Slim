@@ -9,10 +9,19 @@
 
 namespace Slim\Http;
 
+<<<<<<< HEAD:src/Http/Response.php
 use Slim\Http\Interfaces\ResponseInterface;
 use Slim\Http\Interfaces\HeadersInterface;
 
 use InvalidArgumentException;
+=======
+use InvalidArgumentException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
+use Slim\Interfaces\Http\HeadersInterface;
+use Slim\Http\Headers;
+use Slim\Http\Body;
+>>>>>>> upstream/develop:Slim/Http/Response.php
 
 /**
  * Response
@@ -37,7 +46,7 @@ class Response implements ResponseInterface
      * @var int
      */
     protected $status = 200;
-    
+
     /**
      * Reason phrase
      * @var string
@@ -208,7 +217,7 @@ class Response implements ResponseInterface
             throw new InvalidArgumentException('ReasonPhrase must be a string');
         }
 
-        $this->status = $this->filterStatus($code);
+        $this->status = $this->filterStatus($code); //@FIXME: wrap into try/catch
 
         $this->reasonPhrase = $reasonPhrase;
 
@@ -334,7 +343,7 @@ class Response implements ResponseInterface
     public function getHeaderLine( $name )
     {
         return implode(',', $this->headers->get($name, []));
-    }  
+    }
 
     /**
      * Set a header to add to the current response
@@ -438,8 +447,7 @@ class Response implements ResponseInterface
 
 
     /**
-     * Redirect : prepares the response object to return an HTTP Redirect 
-     * response to the client.
+     * Redirect : prepares the response object to return an HTTP Redirect response to the client.
      *
      * @param  string $url    The redirect destination.
      * @param  int    $status The redirect HTTP status code.

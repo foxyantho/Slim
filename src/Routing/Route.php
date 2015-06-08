@@ -136,6 +136,7 @@ class Route implements RouteInterface
      * Set route name
      *
      * @param string $name
+     * @throws InvalidArgumentException if the route name is not a string
      */
     public function setName( $name )
     {
@@ -175,7 +176,7 @@ class Route implements RouteInterface
      * @param RequestInterface       $request  The current Request object
      * @param ResponseInterface      $response The current Response object
      * @return \Psr\Http\Message\ResponseInterface
-     * @throws \Exception
+     * @throws \Exception  if the route callable throws an exception
      */
     public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
@@ -198,7 +199,7 @@ class Route implements RouteInterface
 
             throw $e;
         }
-        
+
         // if route callback returns a ResponseInterface, then use it
         if( $newResponse instanceof ResponseInterface )
         {
@@ -210,7 +211,7 @@ class Route implements RouteInterface
         {
             $response->write($newResponse);
         }
-        
+
         // append output buffer content if there is any
         if( $output )
         {

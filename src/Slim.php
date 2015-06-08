@@ -263,9 +263,8 @@ class Slim
      * This method prepends new middleware to the route's middleware stack.
      * 
      * @param  mixed    $callable
-     * @return RouteInterface
+     * @return $this
      */
-    // @TODO: deprecated
     public function add( $callable )
     {
         $callable = $this->resolveCallable($callable);
@@ -410,6 +409,9 @@ class Slim
 
             return $notAllowedHandler($request, $response, $routeInfo[1]);
         }
+
+        //@TODO: $notFoundHandler = $this->container->get('notFoundHandler');
+        //return $notFoundHandler($request, $response);
     }
 
 

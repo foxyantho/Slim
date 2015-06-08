@@ -10,6 +10,9 @@ namespace Slim\Http\Interfaces;
 
 /**
  * Cookies Interface
+ *
+ * @package Slim
+ * @since   3.0.0
  */
 interface CookiesInterface
 {

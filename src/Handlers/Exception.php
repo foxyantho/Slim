@@ -81,7 +81,7 @@ class Exception implements HandlerInterface
         $line = $exception->getLine();
 
         $trace = str_replace(['#', '\n'], ['<div>#', '</div>'], $exception->getTraceAsString());
-        
+
         $html = sprintf('<div><strong>Type:</strong> %s</div>', get_class($exception));
 
         if( $code )

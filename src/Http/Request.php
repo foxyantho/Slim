@@ -96,7 +96,26 @@ class Request implements RequestInterface
 
 
     /**
-     * Create new HTTP request
+     * Create new HTTP request with data extracted from the Environment
+     *
+     * @param  Environment $environment
+     * @return self
+     */
+    /*public static function createFromEnvironment( EnvironmentInterface $environment )
+    {
+        $method = $environment['REQUEST_METHOD'];
+
+        $headers = Headers::createFromEnvironment($environment);
+
+        $serverParams = $environment->all();
+
+        $body = file_get_contents('php://input');
+
+        return new static($method, $uri, $headers, $cookies, $serverParams, $body);
+    }*/
+
+    /**
+     * Create new HTTP request.
      *
      * @param string            $method
      * @param HeadersInterface  $headers
@@ -760,6 +779,21 @@ class Request implements RequestInterface
         }
 
         return $params;
+    }
+
+    /**
+     * Get the client IP address. //@TODO:getip
+     *
+     * @return string|null IP address or null if none found.
+     */
+    public function getIp()
+    {
+        if( $this->hasHeader('X-Forwarded-For') )
+        {
+            return trim(current(explode(',', $this->getHeaderLine('X-Forwarded-For'))));
+        }
+
+        return isset($this->serverParams['REMOTE_ADDR']) ? $this->serverParams['REMOTE_ADDR'] : null;
     }
 
 
