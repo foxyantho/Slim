@@ -9,19 +9,10 @@
 
 namespace Slim\Http;
 
-<<<<<<< HEAD:src/Http/Response.php
 use Slim\Http\Interfaces\ResponseInterface;
 use Slim\Http\Interfaces\HeadersInterface;
 
 use InvalidArgumentException;
-=======
-use InvalidArgumentException;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
-use Slim\Interfaces\Http\HeadersInterface;
-use Slim\Http\Headers;
-use Slim\Http\Body;
->>>>>>> upstream/develop:Slim/Http/Response.php
 
 /**
  * Response

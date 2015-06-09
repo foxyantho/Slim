@@ -17,7 +17,7 @@ use FastRoute\RouteParser;
 use FastRoute\DataGenerator;
 use FastRoute\RouteParser\Std as StdParser;
 use FastRoute\DataGenerator\GroupCountBased as GroupCountBasedGenerator;
-use FastRoute\Dispatcher\GroupCountBased as RouteDispatcherGroupCountBased;
+use FastRoute\Dispatcher\GroupCountBased as GroupCountBasedDispatcher;
 
 use InvalidArgumentException;
 use RuntimeException;
