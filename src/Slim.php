@@ -310,16 +310,59 @@ class Slim
      *******************************************************************************/
 
     /**
-     * Run application : traverses the application middleware stack,
-     * and it returns the resultant Response object to the HTTP client.
+     * Send the response the client
+     *
+     * @param ResponseInterface $response
+     */
+    protected function respond( ResponseInterface $response )
+    {
+        static $responded = false;
+
+        if( !$responded )
+        {
+            // finalize response
+            list($status, $headers, $body) = $response->finalize();
+
+            // send response
+            if( !headers_sent() )
+            {
+                header(sprintf(
+                    'HTTP/%s %s %s',
+                    $response->getProtocolVersion(),
+                    $response->getStatusCode(),
+                    $response->getReasonPhrase()
+                ));
+
+                // headers
+                foreach( $response->getHeaders() as $name => $value )
+                {
+                    header(sprintf('%s: %s', $name, $value), false); // multiples
+                }
+            }
+
+            // Body
+            if( $body )
+            {
+                echo $body;
+            }
+
+            $responded = true;
+        }
+    }
+
+    /**
+     * Run application
+     * This method traverses the application middleware stack and then sends the
+     * resultant Response object to the HTTP client.
      */
     public function run()
     {
+        static $responded = false;
+
         $request = $this->request;
         $response = $this->response;
 
         // Traverse middleware stack
-
         try
         {
             $response = $this->callMiddlewareStack($request, $response);
@@ -335,38 +378,7 @@ class Slim
             $response = $exceptionHandler($request, $response, $e);
         }
 
-        // Finalize response : fetch status, header, and body
-
-        list($status, $headers, $body) = $response->finalize();
-
-        // Send response
-
-        if( !headers_sent() )
-        {
-            header(sprintf(
-                'HTTP/%s %s %s',
-                $response->getProtocolVersion(),
-                $response->getStatusCode(),
-                $response->getReasonPhrase()
-            ));
-
-            // Headers
-            foreach( $headers as $name => $value )
-            {
-                header(sprintf('%s: %s', $name, $value), false); // multiples
-            }
-        }
-
-        // Body
-
-        if( $body )
-        {
-            echo $body;
-        }
-
-        // response, if needed
-
-        return $response;
+        $this->respond($response);
     }
 
     /**
