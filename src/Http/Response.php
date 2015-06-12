@@ -403,34 +403,6 @@ class Response implements ResponseInterface
         return strlen($this->body);
     }
 
-    /**
-     * Finalize: prepares this response and returns an array
-     * of [status, headers, body]. This array is passed to outer middleware
-     * if available or directly to the Slim run method.
-     *
-     * @return array[int status, array headers, string body]
-     */
-    public function finalize()
-    {
-        // Prepare response
-        if( in_array($this->status, [204, 304]) ) // @TODO use isempty() ?
-        {
-            $this->withoutHeader('Content-Type');
-            $this->withoutHeader('Content-Length');
-
-            $this->write(null);
-        }
-        else
-        {
-            $this->header('Content-Length', $this->getBodyLength());
-        }
-
-        return [
-            $this->getStatusCode(),
-            $this->getHeaders(),
-            $this->getBody()
-        ];
-    }
 
     /*******************************************************************************
      * Response Helpers

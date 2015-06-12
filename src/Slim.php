@@ -321,7 +321,25 @@ class Slim
         if( !$responded )
         {
             // finalize response
-            list($status, $headers, $body) = $response->finalize();
+            $statusCode = $response->getStatusCode();
+
+            $hasBody = ( $statusCode !== 204 && $statusCode !== 304 );
+
+            if( !$hasBody )
+            {
+                $response
+                ->withoutHeader('Content-Type')
+                ->withoutHeader('Content-Length');
+            }
+            else
+            {
+                $size = $response->getBodyLength();
+
+                if( $size > 0 )
+                {
+                    $response = $response->header('Content-Length', $size);
+                }
+            }
 
             // send response
             if( !headers_sent() )
@@ -341,9 +359,9 @@ class Slim
             }
 
             // Body
-            if( $body )
+            if( $hasBody )
             {
-                echo $body;
+                echo $response->getBody();
             }
 
             $responded = true;
@@ -357,8 +375,6 @@ class Slim
      */
     public function run()
     {
-        static $responded = false;
-
         $request = $this->request;
         $response = $this->response;
 
