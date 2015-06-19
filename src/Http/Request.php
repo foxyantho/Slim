@@ -192,12 +192,12 @@ class Request implements RequestInterface
     {
         if( !isset($this->method) )
         {
-            if( $method = $this->getHeaderLine('X-Http-Method-Override') )
+            if( $method = $this->getHeader('X-Http-Method-Override') )
             {
                 // override original method
 
                 $this->method = $method;
-            }
+            } //else @TODO: return 'unknow'
         }
 
         return $this->method;
@@ -332,16 +332,6 @@ class Request implements RequestInterface
      *         echo $name . ": " . implode(", ", $values);
      *     }
      *
-     *     // Emit headers iteratively:
-     *     foreach ($message->getHeaders() as $name => $values) {
-     *         foreach ($values as $value) {
-     *             header(sprintf('%s: %s', $name, $value), false);
-     *         }
-     *     }
-     *
-     * While header names are not case-sensitive, getHeaders() will preserve the
-     * exact case in which headers were originally specified.
-     *
      * @return array Returns an associative array of the message's headers.
      *               Each key MUST be a header name, and each value MUST be
      *               an array of strings.
@@ -374,26 +364,7 @@ class Request implements RequestInterface
      */
     public function getHeader( $name )
     {
-        return $this->headers->get($name, []);
-    }
-
-    /**
-     * Retrieve a header by the given case-insensitive name, as a string.
-     *
-     * This method returns all of the header values of the given
-     * case-insensitive header name as a string concatenated together using
-     * a comma.
-     *
-     * Not all header values may be appropriately represented using
-     * comma concatenation. For such headers, use getHeader instead
-     * and supply your own delimiter when concatenating.
-     *
-     * @param  string $name Case-insensitive header field name.
-     * @return string
-     */
-    public function getHeaderLine( $name )
-    {
-        return implode(',', $this->getHeader($name));
+        return $this->headers->get($name);
     }
 
     /**
@@ -682,14 +653,9 @@ class Request implements RequestInterface
      */
     protected function buildBodyParams()
     {
-        if( !$this->body )
+        if( !$this->body || $this->bodyParams )
         {
-            return; // no body, can't process it
-        }
-
-        if( $this->bodyParams )
-        {
-            return; // alread set
+            return; // no body, can't process it || already set
         }
 
         $contentType = $this->getContentType();
@@ -707,6 +673,11 @@ class Request implements RequestInterface
 
             $this->bodyParams = $parsed;
         }
+
+        var_dump($contentType);
+
+
+        die;
     }
 
     /**
@@ -815,7 +786,7 @@ class Request implements RequestInterface
     {
         if( $this->hasHeader('X-Forwarded-For') )
         {
-            return trim(current(explode(',', $this->getHeaderLine('X-Forwarded-For'))));
+            return trim(current(explode(',', $this->getHeader('X-Forwarded-For'))));
         }
 
         return isset($this->serverParams['REMOTE_ADDR']) ? $this->serverParams['REMOTE_ADDR'] : null;
