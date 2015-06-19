@@ -34,7 +34,12 @@ class Headers extends Collection implements HeadersInterface
      * @var array
      */
     protected static $special = [
-        'CONTENT_TYPE', 'CONTENT_LENGTH', 'PHP_AUTH_USER', 'PHP_AUTH_PW', 'PHP_AUTH_DIGEST', 'AUTH_TYPE'
+        'CONTENT_TYPE',
+        'CONTENT_LENGTH',
+        'PHP_AUTH_USER',
+        'PHP_AUTH_PW',
+        'PHP_AUTH_DIGEST',
+        'AUTH_TYPE'
     ];
 
     /**
@@ -52,13 +57,18 @@ class Headers extends Collection implements HeadersInterface
         {
             $key = strtoupper($key);
 
-            if( strpos($key, 'HTTP_') === 0 || in_array($key, static::$special) )
+            if( strpos($key, 'HTTP_') === 0 )
             {
-                if( $key !== 'HTTP_CONTENT_LENGTH' )
-                {
-                    // replace '_' by ' ', ucwords, re-replace ' ' by '-'
-                    $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))))] = $value;
-                }
+                //if( $key !== 'HTTP_CONTENT_LENGTH' )
+
+                // replace '_' by ' ', ucwords, re-replace ' ' by '-'
+
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))))] = $value;
+
+            }
+            elseif( in_array($key, static::$special) )
+            {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', $key))))] = $value;
             }
         }
 
