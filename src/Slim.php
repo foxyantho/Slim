@@ -136,7 +136,19 @@ class Slim
     public static function getDefaultSettings()
     {
         return [
-            'httpVersion' => '1.1'
+
+            'httpVersion' => '1.1',
+
+            'use_rewrite' => true, //@TODO: implementation
+
+
+            // Templates
+    
+            'template' => [],
+
+            // Database
+
+            'database' => []
         ];
     }
 
