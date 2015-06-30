@@ -462,22 +462,19 @@ class Request implements RequestInterface
 
     /**
      * Retrieve the path segment of the URI: the folder from where the project is running.
-     * If there is no path ( load from root folder -> equal "/", or "." ) return void.
+     * If there is no path ( load from root folder -> equal "." ) return "/".
      * 
      * @return string
      */
     public function getUriBasePath()
     {
-        $requestScriptName = $this->serverParams['SCRIPT_NAME']; // "/index.php", "/folder/index.php"
+        $basePath = dirname($this->serverParams['SCRIPT_NAME']); // "'/'index.php", "'/folder/'index.php"
 
-        if( !in_array($basePath = dirname($requestScriptName), ['/', '.']) )
-        {
-            return $basePath;
-        }
+        return $basePath !== '.' ? '/' . trim($basePath, '/') . '/' : '/';
     }
 
     /**
-     * Retrieve the path segment of the URI.
+     * Retrieve the path segment of the URI. ("/route/welcome")
      * This method MUST return a string; if no path is present it MUST return the string "/".
      *
      * @return string
@@ -486,10 +483,25 @@ class Request implements RequestInterface
     {
         $requestUri = urldecode($this->serverParams['REQUEST_URI']);
 
-        if( $basePath = $this->getUriBasePath() )
+        $requestScriptName = $this->serverParams['SCRIPT_NAME']; // with base folder
+
+
+        if( strpos($requestUri, $requestScriptName) === 0 )
         {
-            // forced rewrite engine on
-            $requestUri = substr($requestUri, strlen($basePath)); // remove base path aka virtualPath
+            // no rewrite "/folder/index.php/route"
+
+            $requestUri = substr($requestUri, strlen($requestScriptName));
+        }
+        else
+        {
+            // remove base folder "'/folder/'index.php/route" or "'/folder/'route"
+
+            $basePath = $this->getUriBasePath();
+
+            if( strpos($requestUri, $basePath) === 0 )
+            {
+                $requestUri = substr($requestUri, strlen($basePath));
+            }
         }
 
         return '/' . ltrim($requestUri, '/');
@@ -502,7 +514,7 @@ class Request implements RequestInterface
      */
     public function getRootUri()
     {
-        return '//' . $this->getUriAuthority() . $this->getUriBasePath() . '/';
+        return '//' . $this->getUriAuthority() . $this->getUriBasePath();
     }
 
 
