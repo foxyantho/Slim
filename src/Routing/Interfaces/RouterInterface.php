@@ -20,36 +20,6 @@ use Slim\Http\Interfaces\RequestInterface;
  */
 interface RouterInterface
 {
-    /**
-     * Add route
-     *
-     * @param string[] $methods Array of HTTP methods
-     * @param string   $pattern The route pattern
-     * @param callable $handler The route callable
-     *
-     * @return \Slim\Interfaces\RouteInterface
-     */
-    public function map( $methods, $pattern, $handler );
 
-    /**
-     * Dispatch router for HTTP request
-     *
-     * @param  RequestInterface $request The current HTTP request object
-     * @return array
-     * @link   https://github.com/nikic/FastRoute/blob/master/src/Dispatcher.php
-     */
-    public function dispatch( RequestInterface $request );
 
-    /**
-     * Build URL for named route
-     *
-     * @param string $name        Route name
-     * @param array  $data        Route URI segments replacement data
-     * @param array  $queryParams Optional query string parameters
-     *
-     * @return string
-     * @throws \RuntimeException         If named route does not exist
-     * @throws \InvalidArgumentException If required data not provided
-     */
-    public function urlFor( $name, array $data = [], array $queryParams = [] );
 }

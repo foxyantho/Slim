@@ -9,8 +9,8 @@
 
 namespace Slim;
 
-use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\ResponseInterface;
+use Slim\Http\Interfaces\RequestInterface as Request;
+use Slim\Http\Interfaces\ResponseInterface as Response;
 use Slim\Http\Environment as HttpEnvironment;
 use Slim\Http\Headers as HttpHeaders;
 use Slim\Http\Request as HttpRequest;
@@ -19,8 +19,9 @@ use Slim\Http\Response as HttpResponse;
 use Slim\Routing\Router;
 use FastRoute\Dispatcher as RouteDispatcher;
 
-use Slim\Handlers\Exception as ExceptionHandler;
+use Slim\Handlers\Found as FoundHandler;
 use Slim\Handlers\NotFound as NotFoundHandler;
+use Slim\Handlers\Exception as ExceptionHandler;
 use Slim\Handlers\NotAllowed as NotAllowedHandler;
 
 use Closure;
@@ -36,13 +37,13 @@ use Slim\Exception as SlimException;
  * The \Slim\App class also accepts Slim Framework middleware.
  *
  * @property-read array $settings App settings
- * @property-read \Slim\Interfaces\Http\EnvironmentInterface $environment
- * @property-read \Psr\Http\Message\RequestInterface $request
- * @property-read \Psr\Http\Message\ResponseInterface $response
- * @property-read \Slim\Interfaces\RouterInterface $router
- * @property-read callable $exceptionHandler
- * @property-read callable function($request, $response) $notFoundHandler
- * @property-read callable function($request, $response, $allowedHttpMethods) $notAllowedHandler
+ * @property-read EnvironmentInterface $environment
+ * @property-read RequestInterface $request
+ * @property-read ResponseInterface $response
+ * @property-read RouterInterface $router
+ * @property-read callable $errorHandler
+ * @property-read callable $notFoundHandler function($request, $response)
+ * @property-read callable $notAllowedHandler function($request, $response, $allowedHttpMethods)
  */
 class Slim
 {
@@ -73,12 +74,13 @@ class Slim
     protected $router;
 
 
-    protected $exceptionHandler;
+    protected $foundHandler;
 
     protected $notFoundHandler;
 
     protected $notAllowedHandler;
 
+    protected $exceptionHandler;
 
 
     public function __construct( array $userSettings = [] )
@@ -113,10 +115,12 @@ class Slim
 
         $this->router = new Router;
 
-        // error handlers
+        //$router->setBasePath($request->Uri->getBasePath());
 
-        $this->exceptionHandler = function() {
-            return call_user_func_array(new ExceptionHandler, func_get_args());
+        // handlers
+
+        $this->foundHandler = function() {
+            return call_user_func_array(new FoundHandler, func_get_args());
         };
 
         $this->notFoundHandler = function() {
@@ -126,6 +130,11 @@ class Slim
         $this->notAllowedHandler = function() {
             return call_user_func_array(new NotAllowedHandler, func_get_args());
         };
+
+        $this->exceptionHandler = function() {
+            return call_user_func_array(new ExceptionHandler, func_get_args());
+        };
+
     }
 
     /**
@@ -254,13 +263,18 @@ class Slim
      * @param  string[] $methods  Numeric array of HTTP method names
      * @param  string   $pattern  The route URI pattern
      * @param  mixed    $callable The route callback routine
-     * @return \Slim\Interfaces\RouteInterface
+     *
+     * @return RouteInterface
      */
     public function map( array $methods, $pattern, $callable )
     {
         $callable = $this->resolveCallable($callable);
 
         $route = $this->router->map($methods, $pattern, $callable);
+
+        if (is_callable([$route, 'setOutputBuffering'])) {
+            $route->setOutputBuffering($this->container->get('settings')['outputBuffering']);
+        }
 
         return $route;
     }
@@ -284,76 +298,84 @@ class Slim
         return $this->addMiddleware($callable);
     }
 
-    /**
-     * Stop : stops the application and sends the provided
-     * Response object to the HTTP client.
-     *
-     * @param  ResponseInterface $response
-     * @throws \Slim\Exception
-     */
-    // @TODO: deprecated
-    public function stop( ResponseInterface $response )
-    {
-        throw new SlimException($response);
-    }
-
-    /**
-     * Halt : prepares a new HTTP response with a specific
-     * status and message. The method immediately halts the
-     * application and returns a new response with a specific
-     * status and message.
-     *
-     * @param  int    $status  The desired HTTP status
-     * @param  string $message The desired HTTP message
-     * @throws \Slim\Exception
-     */
-    // @TODO: deprecated
-    public function halt( $status, $message = '' )
-    {
-        $response = $this->response->status($status);
-
-        $response->write($message);
-
-        $this->stop($response);
-    }
 
     /********************************************************************************
      * Runner
      *******************************************************************************/
+
+
+    /**
+     * Run application
+     * This method traverses the application middleware stack and then sends the
+     * resultant Response object to the HTTP client.
+     */
+    public function run()
+    {
+        // Traverse middleware stack
+
+        try
+        {
+            $response = $this->callMiddlewareStack($this->request, $this->response);
+        }
+        catch ( SlimException $e )
+        {
+            $response = $e->getResponse();
+        }
+        catch( Exception $e )
+        {
+            $exceptionHandler = $this->exceptionHandler;
+
+            $response = $exceptionHandler($this->request, $this->response, $e);
+        }
+// @FIXME: :!_!:
+
+        $response = $this->finalize($response);
+
+        $this->respond($response);
+
+
+        return $response;
+    }
+
+    /**
+     * Finalize response
+     *
+     * @param  ResponseInterface $response
+     * @return ResponseInterface
+     */
+    protected function finalize( Response $response )
+    {
+        if( $response->isEmpty() )
+        {
+            return $response->withoutHeader('Content-Type')
+                            ->withoutHeader('Content-Length');
+        }
+
+        // it has body :
+
+        $size = $response->getBodyLength();
+
+        if( $size > 0 )
+        {
+            $response = $response->header('Content-Length', (string) $size);
+        }
+
+        return $response;
+    }
 
     /**
      * Send the response the client
      *
      * @param ResponseInterface $response
      */
-    protected function respond( ResponseInterface $response )
+    protected function respond( Response $response )
     {
         static $responded = false;
 
         if( !$responded )
         {
-            // finalize response
-            $statusCode = $response->getStatusCode();
-
-            $hasBody = ( $statusCode !== 204 && $statusCode !== 304 );
-
-            if( !$hasBody )
-            {
-                $response
-                ->withoutHeader('Content-Type')
-                ->withoutHeader('Content-Length');
-            }
-            else
-            {
-                $size = $response->getBodyLength();
-
-                if( $size > 0 )
-                {
-                    $response = $response->header('Content-Length', $size);
-                }
-            }
-
             // send response
+
             if( !headers_sent() )
             {
                 header(sprintf(
@@ -364,49 +386,23 @@ class Slim
                 ));
 
                 // headers
+
                 foreach( $response->getHeaders() as $name => $value )
                 {
-                    header(sprintf('%s: %s', $name, $value), false); // multiples
+                    header(sprintf('%s: %s', $name, $value), false); // don't replace existing
                 }
             }
 
             // Body
-            if( $hasBody )
+
+            if( !$response->isEmpty() )
             {
                 echo $response->getBody();
             }
 
+
             $responded = true;
         }
-    }
-
-    /**
-     * Run application
-     * This method traverses the application middleware stack and then sends the
-     * resultant Response object to the HTTP client.
-     */
-    public function run()
-    {
-        $request = $this->request;
-        $response = $this->response;
-
-        // Traverse middleware stack
-        try
-        {
-            $response = $this->callMiddlewareStack($request, $response);
-        }
-        catch ( SlimException $e )
-        {
-            $response = $e->getResponse();
-        }
-        catch( Exception $e )
-        {
-            $exceptionHandler = $this->exceptionHandler;
-
-            $response = $exceptionHandler($request, $response, $e);
-        }
-
-        $this->respond($response);
     }
 
     /**
@@ -419,21 +415,31 @@ class Slim
      * @param  ResponseInterface $response The most recent Response object
      * @return ResponseInterface
      */
-    public function __invoke( RequestInterface $request, ResponseInterface $response )
+    public function __invoke( Request $request, Response $response )
     {
         $routeInfo = $this->router->dispatch($request);
 
         // 0 -> type
-        // 1 -> route
-        // 2 -> get params
+        // 1 -> [Route, 'run']
+        // 2 -> arguments
 
         if( $routeInfo[0] === RouteDispatcher::FOUND )
         {
             // URL decode the named arguments from the router
+            // dispatchRouterAndPrepareRoute
 
             $attributes = array_map('urldecode', $routeInfo[2]);
 
-            return $routeInfo[1]($request->attributes($attributes), $response); //TODO: override attributes
+            $route = $routeInfo[1][0]->arguments($attributes);
+
+            // $request->attributes($attributes)
+
+            list( $request, $response, $handler, $attributes ) = $route($request, $response);
+
+
+            $foundHandler = $this->foundHandler;
+
+            return $foundHandler($request, $response, $handler, $attributes);
         }
 
         if( $routeInfo[0] === RouteDispatcher::NOT_FOUND )
@@ -449,9 +455,6 @@ class Slim
 
             return $notAllowedHandler($request, $response, $routeInfo[1]);
         }
-
-        //@TODO: $notFoundHandler = $this->container->get('notFoundHandler');
-        //return $notFoundHandler($request, $response);
     }
 
 

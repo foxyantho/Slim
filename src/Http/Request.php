@@ -13,11 +13,12 @@ use Slim\Http\Interfaces\RequestInterface;
 use Slim\Http\Interfaces\HeadersInterface;
 use Slim\Http\Interfaces\EnvironmentInterface;
 
+use Closure;
+
 use Slim\Collection;
 
 use InvalidArgumentException;
 use RuntimeException;
-
 
 /**
  * Response
@@ -63,16 +64,16 @@ class Request implements RequestInterface
     protected $body;
 
     /**
-     * List of request body parsers (e.g., url-encoded, JSON, XML, multipart)
-     * @var callable[]
-     */
-    protected $bodyParsers = [];
-
-    /**
      * The request query params
      * @var array
      */
     protected $queryParams;
+
+    /**
+     * List of request body parsers (e.g., url-encoded, JSON, XML, multipart)
+     * @var callable[]
+     */
+    protected $bodyParsers = [];
 
     /**
      * The request body params
@@ -306,11 +307,11 @@ class Request implements RequestInterface
     }
 
     /**
-     * Is this an AJAX request?
+     * Is this an XHR request?
      *
      * @return bool
      */
-    public function isAjax()
+    public function isXhr()
     {
         return $this->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
     }
@@ -367,22 +368,46 @@ class Request implements RequestInterface
         return $this->headers->get($name);
     }
 
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Get request content type
-     * "application/json;charset=utf8;foo=bar" -> "application/json"
+     * "application/json;charset=utf8;foo=bar"
      *
-     * @return string|null The request content type, if known
+     * @return string|false The request content type, if known
      */
     public function getContentType()
     {
-        if( $contentType = $this->getHeader('Content-Type') )
-        {
-            $parts = preg_split('/\s*[;,]\s*/', $contentType);
+        return $this->getHeader('Content-Type');
+    }
 
-            return strtolower($parts[0]);
+    /**
+     * Get request media type, if known.
+     * "application/json;charset=utf8;foo=bar" -> "application/json"
+     *
+     * @return string|null The request media type, minus content-type params
+     */
+    public function getMediaType()
+    {
+        $contentType = $this->getContentType();
+
+        if( $contentType )
+        {
+            $contentTypeParts = preg_split('/\s*[;,]\s*/', $contentType);
+
+            return strtolower($contentTypeParts[0]);
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -544,7 +569,7 @@ class Request implements RequestInterface
 
         $queryString = urldecode($this->serverParams['QUERY_STRING']);
 
-        parse_str($queryString, $this->queryParams); // <-- URL decodes data
+        parse_str($queryString, $this->queryParams); // <-- set URL decodes in $queryParams
 
         return $this->queryParams;
     }
@@ -659,16 +684,22 @@ class Request implements RequestInterface
     }
 
     /**
-     * Build the body params and send them into their array
+     * Lazy-load: Build the body params and send them into their array
      * 
      * @throws RuntimeException
      */
     protected function buildBodyParams()
     {
-        if( !$this->body || $this->bodyParams )
+        if( $this->bodyParams )
         {
-            return; // no body, can't process it || already set
+            return $this->bodyParams;
         }
+
+        if( !$this->body )
+        {
+            return null;
+        }
+
 
         $contentType = $this->getContentType();
 
@@ -678,18 +709,13 @@ class Request implements RequestInterface
 
             $parsed = $this->bodyParsers[$contentType]($this->getBody());
 
-            if( !is_null($parsed) && !is_object($parsed) && !is_array($parsed) )
+            if( !is_null($parsed) && !is_array($parsed) )
             {
-                throw new RuntimeException('Request body media type parser return value must be an array, an object, or null');
+                throw new RuntimeException('Request body media type parser return value must be an array or null');
             }
 
             $this->bodyParams = $parsed;
         }
-
-        var_dump($contentType);
-
-
-        die;
     }
 
     /**
@@ -735,7 +761,10 @@ class Request implements RequestInterface
      */
     public function registerMediaTypeParser( $mediaType, callable $callable )
     {
-        $callable = $callable->bindTo($this);
+        if( $callable instanceof Closure )
+        {
+            $callable = $callable->bindTo($this);
+        }
 
         $this->bodyParsers[(string)$mediaType] = $callable;
     }
@@ -745,31 +774,6 @@ class Request implements RequestInterface
      * Parameters (e.g., POST and GET data)
      ******************************************************************************/
 
-    /**
-     * Fetch request parameter value from body or query string (in that order).
-     *
-     * Note: This method is not part of the PSR-7 standard.
-     *
-     * @param  string $key The parameter key.
-     * @param  string $default The default value.
-     *
-     * @return mixed The parameter value.
-     */
-    /*public function getParam($key, $default = null)
-    {
-        $postParams = $this->getParsedBody();
-        $getParams = $this->getQueryParams();
-        $result = $default;
-        if (is_array($postParams) && isset($postParams[$key])) {
-            $result = $postParams[$key];
-        } elseif (is_object($postParams) && property_exists($postParams, $key)) {
-            $result = $postParams->$key;
-        } elseif (isset($getParams[$key])) {
-            $result = $getParams[$key];
-        }
-
-        return $result;
-    }*/ // @TODO: all commented functions
 
     /**
      * Fetch assocative array of body and query string parameters

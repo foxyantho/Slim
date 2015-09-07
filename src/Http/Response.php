@@ -410,15 +410,33 @@ class Response implements ResponseInterface
 
 
     /**
-     * Redirect : prepares the response object to return an HTTP Redirect response to the client.
+     * Redirect : prepares the response object to return an HTTP Redirect
+     * response to the client.
      *
-     * @param  string $url    The redirect destination.
-     * @param  int    $status The redirect HTTP status code.
+     * @param  string $url
+     * @param  int    $status
      * @return self
      */
     public function redirect( $url, $status = 302 )
     {
-        return $this->status($status)->header('Location', $url);
+        return $this->status($status)->header('Location', (string)$url);
+    }
+
+    /**
+     * Json : prepares the response object to return an HTTP Json
+     * response to the client.
+     *
+     * @param  mixed  $data
+     * @param  int    $status
+     * @param  int    $encodingOptions encoding options
+     * @return self
+     */
+    public function json( $data, $status = 200, $encodingOptions = 0 )
+    {
+        $this->write(json_encode($data, $encodingOptions));
+
+        return $this->status($status)
+                    ->header('Content-Type', 'application/json;charset=utf-8');
     }
 
     /**
@@ -428,7 +446,7 @@ class Response implements ResponseInterface
      */
     public function isEmpty()
     {
-        return in_array($this->getStatusCode(), [201, 204, 304]);
+        return in_array($this->getStatusCode(), [204, 205, 304]);
     }
 
     /**

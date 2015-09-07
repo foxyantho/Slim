@@ -10,8 +10,8 @@
 namespace Slim\Handlers;
 
 use Slim\Handlers\Interfaces\HandlerInterface;
-use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\ResponseInterface;
+use Slim\Http\Interfaces\RequestInterface as Request;
+use Slim\Http\Interfaces\ResponseInterface as Response;
 
 
 /**
@@ -28,36 +28,22 @@ class NotAllowed implements HandlerInterface
      *
      * @param  RequestInterface  $request   The most recent Request object
      * @param  ResponseInterface $response  The most recent Response object
-     * @param  string[]          $methods   Allowed HTTP methods
-     *
      * @return ResponseInterface
      */
-    public function __invoke( RequestInterface $request, ResponseInterface $response, array $methods = [] )
+    public function __invoke( Request $request, Response $response, array $methods = [] )
     {
-        return $response
-                ->status(405)
-                ->header('Content-type', 'text/html')
-                ->header('Allow', implode(', ', $methods))
-                ->Write('Method not allowed. Must be one of: ' . $this->allowedMethodsAsString($methods));
-    }
-
-    /**
-     * Return the allowed methods as a string
-     * example: "get, post or put"
-     * 
-     * @param  array  $methods
-     * @return string
-     */
-    protected function allowedMethodsAsString( array $methods )
-    {
-        $last = array_pop($methods);
+        $allowed_methods = array_pop($methods);
 
         if( $methods )
         {
-            return implode(', ', $methods) . ' or ' . $last;
+            $allowed_methods = implode(', ', $methods) . ' or ' . $last;
         }
 
-        return $last;
+        return $response
+                ->status($status)
+                ->header('Content-type', $contentType)
+                ->header('Allow', implode(', ', $methods))
+                ->Write('Method not allowed. Must be one of: ' . $allowed_methods);
     }
 
 

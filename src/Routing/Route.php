@@ -20,7 +20,6 @@ use Closure;
 use Exception;
 use InvalidArgumentException;
 
-
 /**
  * Route
  */
@@ -33,50 +32,52 @@ class Route implements RouteInterface
         add as addMiddleware;
     }
 
-
     /**
      * HTTP methods supported by this route
-     *
      * @var string[]
      */
     protected $methods = [];
 
     /**
      * Route pattern
-     *
      * @var string
      */
     protected $pattern;
 
     /**
-     * Route callable
-     *
-     * @var callable
+     * Route handler
+     * @var handler
      */
-    protected $callable;
+    protected $handler;
 
     /**
      * Route name
-     *
      * @var null|string
      */
     protected $name;
+
+    /**
+     * Route parameters
+     * @var array
+     */
+    protected $arguments = [];
 
 
     /**
      * Create new route
      *
-     * @param string[] $methods       The route HTTP methods
-     * @param string   $pattern       The route pattern
-     * @param callable $callable      The route callable
+     * @param string[]     $methods The route HTTP methods
+     * @param string       $pattern The route pattern
+     * @param handler     $handler The route handler
+     * @param RouteGroup[] $groups The parent route groups
      */
-    public function __construct( $methods, $pattern, $callable )
+    public function __construct( $methods, $pattern, $handler )
     {
         $this->methods = $methods;
 
         $this->pattern = $pattern;
 
-        $this->callable = $callable;
+        $this->handler = $handler;
     }
 
     /**
@@ -113,13 +114,13 @@ class Route implements RouteInterface
     }
 
     /**
-     * Get route callable
+     * Get route handler
      *
-     * @return callable
+     * @return handler
      */
-    public function getCallable()
+    public function getHandler()
     {
-        return $this->callable;
+        return $this->handler;
     }
 
     /**
@@ -138,7 +139,7 @@ class Route implements RouteInterface
      * @param string $name
      * @throws InvalidArgumentException if the route name is not a string
      */
-    public function setName( $name )
+    public function name( $name )
     {
         if( !is_string($name) )
         {
@@ -150,16 +151,43 @@ class Route implements RouteInterface
         return $this;
     }
 
+    /**
+     * Retrieve route arguments
+     * 
+     * @param  array  $arguments 
+     * @return self
+     */
+    public function arguments( array $arguments )
+    {
+        $this->arguments = $arguments;
+
+        return $this;
+    }
+
+    /**
+     * Retrieve route arguments
+     * @return array
+     */
+    public function getArguments()
+    {
+        return $this->arguments;
+    }
+
 
     /********************************************************************************
-    * Route Runner
-    *******************************************************************************/
+     * Route Runner
+     *******************************************************************************/
 
 
     /**
-     * Run route : traverses the middleware stack, including the route's callable
+     * Run route : traverses the middleware stack, including the route's handler
      * and captures the resultant HTTP response object. It then sends the response
      * back to the Application.
+     *
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface      $response
+     *
+     * @return ResponseInterface
      */
     public function run( RequestInterface $request, ResponseInterface $response )
     {
@@ -168,7 +196,7 @@ class Route implements RouteInterface
     }
 
     /**
-     * Dispatch route callable against current Request and Response objects
+     * Dispatch route handler against current Request and Response objects
      * This method invokes the route object's callable. If middleware is
      * registered for the route, each callable middleware is invoked in
      * the order specified.
@@ -176,50 +204,12 @@ class Route implements RouteInterface
      * @param RequestInterface       $request  The current Request object
      * @param ResponseInterface      $response The current Response object
      * @return \Psr\Http\Message\ResponseInterface
-     * @throws \Exception  if the route callable throws an exception
+     * @throws \Exception  if the route handler throws an exception
      */
     public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
-        // invoke route callable
-        try
-        {
-            $callable = $this->callable;
 
-            ob_start();
-
-            $newResponse = call_user_func_array($callable, [$request, $response] + $request->getAttributes());
-
-            // @TODO: prefering using return response
-            $output = ob_get_clean();
-
-        }
-        catch( Exception $e )
-        {
-            ob_end_clean();
-
-            throw $e;
-        }
-
-        // if route callback returns a ResponseInterface, then use it
-        if( $newResponse instanceof ResponseInterface )
-        {
-            $response = $newResponse;
-        }
-
-        // if route callback retuns a string, then append it to the response
-        if( is_string($newResponse) )
-        {
-            $response->write($newResponse);
-        }
-
-        // append output buffer content if there is any
-        if( $output )
-        {
-            $response->write($output);
-        }
-
-
-        return $response;
+        return [ $request, $response, $this->handler, $this->arguments ];
     }
 
 

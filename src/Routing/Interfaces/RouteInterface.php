@@ -20,12 +20,6 @@ use Slim\Http\Interfaces\ResponseInterface;
  */
 interface RouteInterface
 {
-    /**
-     * Get route pattern
-     *
-     * @return string
-     */
-    public function getPattern();
 
     /**
      * Dispatch route callable against current Request and Response objects

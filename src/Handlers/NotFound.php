@@ -10,8 +10,8 @@
 namespace Slim\Handlers;
 
 use Slim\Handlers\Interfaces\HandlerInterface;
-use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\ResponseInterface;
+use Slim\Http\Interfaces\RequestInterface as Request;
+use Slim\Http\Interfaces\ResponseInterface as Response;
 
 /**
  * Default not found handler
@@ -25,12 +25,11 @@ class NotFound implements HandlerInterface
     /**
      * Invoke not found handler
      *
-     * @param  RequestInterface  $request   The most recent Request object
-     * @param  ResponseInterface $response  The most recent Response object
-     *
+     * @param  RequestInterface  $request
+     * @param  ResponseInterface $response
      * @return ResponseInterface
      */
-    public function __invoke( RequestInterface $request, ResponseInterface $response )
+    public function __invoke( Request $request, Response $response )
     {
         $output = sprintf(
             '<html>

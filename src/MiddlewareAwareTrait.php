@@ -9,8 +9,8 @@
 
 namespace Slim;
 
-use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\ResponseInterface;
+use Slim\Http\Interfaces\RequestInterface as Request;
+use Slim\Http\Interfaces\ResponseInterface as Response;
 
 use SplStack;
 use SplDoublyLinkedList;
@@ -51,7 +51,7 @@ trait MiddlewareAwareTrait
      *                           3. A "next" middleware callable
      * @return self
      * @throws RuntimeException if middleware is added while the stack is dequeuing
-     * @throws UnexpectedValueException If the middleware doesn't return an instance of \Psr\Http\Message\ResponseInterface
+     * @throws UnexpectedValueException If the middleware doesn't return an instance of \Psr\Http\Message\Response
      */
     public function add( callable $callable )
     {
@@ -68,13 +68,13 @@ trait MiddlewareAwareTrait
 
         $next = $this->stack->top();
 
-        $this->stack[] = function( RequestInterface $request, ResponseInterface $response ) use ( $callable, $next )
+        $this->stack[] = function( Request $request, Response $response ) use ( $callable, $next )
         {
-            $result = $callable($request, $response, $next);
+            $result = call_user_func($callable, $req, $res, $next);
 
-            if( $result instanceof ResponseInterface === false )
+            if( $result instanceof Response === false )
             {
-                throw new UnexpectedValueException('Middleware must return instance of \Psr\Http\Message\ResponseInterface');
+                throw new UnexpectedValueException('Middleware must return instance of \Slim\Http\ResponseInterface');
             }
 
             return $result;
@@ -112,12 +112,12 @@ trait MiddlewareAwareTrait
     /**
      * Call middleware stack
      *
-     * @param  RequestInterface  $request A request object
-     * @param  ResponseInterface $response A response object
+     * @param  Request  $request A request object
+     * @param  Response $response A response object
      *
-     * @return ResponseInterface
+     * @return Response
      */
-    public function callMiddlewareStack( RequestInterface $request, ResponseInterface $response )
+    public function callMiddlewareStack( Request $request, Response $response )
     {
         if( is_null($this->stack) )
         {

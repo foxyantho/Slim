@@ -10,9 +10,10 @@
 namespace Slim\Handlers;
 
 use Slim\Handlers\Interfaces\HandlerInterface;
-use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\ResponseInterface;
+use Slim\Http\Interfaces\RequestInterface as Request;
+use Slim\Http\Interfaces\ResponseInterface as Response;
 
+use Exception as BaseException;
 
 /**
  * Default error handler
@@ -31,10 +32,8 @@ class Exception implements HandlerInterface
      * @param  \Exception        $exception The caught Exception object
      * @return ResponseInterface
      */
-    public function __invoke( RequestInterface $request, ResponseInterface $response, \Exception $exception = null )
+    public function __invoke( Request $request, Response $response, BaseException $exception = null )
     {
-        $title = 'Slim Application Error';
-
         $html = '<p>The application could not run because of the following error:</p>';
         $html .= '<h2>Details</h2>';
 
@@ -42,15 +41,16 @@ class Exception implements HandlerInterface
 
         while( $exception = $exception->getPrevious() )
         {
-
             $html .= '<h2>Previous exception</h2>';
+
             $html .= $this->renderException($exception);
         }
 
         $output = sprintf(
-            '<html>
+            "<html>
                 <head>
-                    <title>%s</title>
+                    <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
+                    <title>Application Error</title>
                     <style>
                         body{margin:0;padding:30px;font:12px/1.5 Helvetica,Arial,Verdana,sans-serif;}
                         h1{margin:0;font-size:48px;font-weight:normal;line-height:48px;}
@@ -58,12 +58,11 @@ class Exception implements HandlerInterface
                     </style>
                 </head>
                 <body>
-                    <h1>%s</h1>
+                    <h1>Application Error</h1>
                     %s
                 </body>
-            </html>',
-            $title,
-            $title,
+            </html>",
+
             $html
         );
 
@@ -73,7 +72,13 @@ class Exception implements HandlerInterface
                 ->write($output);
     }
 
-    protected function renderException( \Exception $exception )
+    /**
+     * Render exception as html.
+     *
+     * @param Exception $exception
+     * @return string
+     */
+    private function renderException( BaseException $exception )
     {
         $code = $exception->getCode();
         $message = $exception->getMessage();

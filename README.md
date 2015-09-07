@@ -1,6 +1,7 @@
 # Slim Framework
 
 [![Build Status](https://travis-ci.org/slimphp/Slim.svg?branch=develop)](https://travis-ci.org/slimphp/Slim)
+[![Coverage Status](https://coveralls.io/repos/slimphp/Slim/badge.svg?branch=develop)](https://coveralls.io/r/slimphp/Slim?branch=develop)
 [![Total Downloads](https://poser.pugx.org/slim/slim/downloads)](https://packagist.org/packages/slim/slim)
 [![License](https://poser.pugx.org/slim/slim/license)](https://packagist.org/packages/slim/slim)
 
@@ -14,7 +15,7 @@ It's recommended that you use [Composer](https://getcomposer.org/) to install Sl
 $ composer require slim/slim
 ```
 
-This will install Slim and all required dependencies. Slim requires PHP 5.4.0 or newer.
+This will install Slim and all required dependencies. Slim requires PHP 5.5.0 or newer.
 
 ## Usage
 
@@ -42,7 +43,7 @@ $ php -S localhost:8000
 
 Going to http://localhost:8000/hello/world will now display "Hello, world".
 
-For more information on how to configure your web server, see the [Documentation](http://docs.slimframework.com).
+For more information on how to configure your web server, see the [Documentation](http://www.slimframework.com/docs/start/web-servers.html).
 
 ## Tests
 
@@ -61,7 +62,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 Learn more at these links:
 
 - [Website](http://www.slimframework.com)
-- [Documentation](http://docs-new.slimframework.com)
+- [Documentation](http://www.slimframework.com/docs/start/installation.html)
 - [Support Forum](http://help.slimframework.com)
 - [Twitter](https://twitter.com/slimphp)
 
