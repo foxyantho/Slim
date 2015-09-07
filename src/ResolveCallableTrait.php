@@ -9,8 +9,8 @@
 
 namespace Slim;
 
-use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\ResponseInterface;
+use Slim\Http\Interfaces\RequestInterface as Request;
+use Slim\Http\Interfaces\ResponseInterface as Response;
 
 use Closure;
 
@@ -41,10 +41,10 @@ trait ResolveCallableTrait
             return $callable;
         }
 
-        if( $callable instanceof Closure )
+        /*if( $callable instanceof Closure )
         {
             return $callable->bindTo($this);
-        }
+        }*/
 
         if( is_string($callable) && strpos($callable, ':') )
         {
@@ -57,7 +57,7 @@ trait ResolveCallableTrait
                 $class = $matches[1];
                 $method = $matches[2];
 
-                return function( RequestInterface $request, ResponseInterface $response ) use ( $class, $method )
+                return function( Request $request, Response $response ) use ( $class, $method )
                 {
                     // first two arguments are always req & res
 
