@@ -82,15 +82,21 @@ class Slim
     protected $exceptionHandler;
 
 
+    protected static $instance;
+
+
+
     public function __construct( array $userSettings = [] )
     {
         // settings
 
         $this->settings = array_merge(static::getDefaultSettings(), $userSettings);
 
+
         // environment
 
         $this->environment = new HttpEnvironment($_SERVER);
+
 
         // request
 
@@ -102,6 +108,7 @@ class Slim
 
         $this->request = new HttpRequest($method, $request_headers, $this->environment, $body);
 
+
         // response
 
         $protocolVersion = $this->settings['httpVersion'];
@@ -110,11 +117,13 @@ class Slim
 
         $this->response = ( new HttpResponse(200, $response_headers) )->protocolVersion($protocolVersion);
 
+
         // router
 
         $this->router = new Router;
 
         //$router->setBasePath($request->Uri->getBasePath());
+
 
         // handlers
 
@@ -133,6 +142,11 @@ class Slim
         $this->exceptionHandler = function() {
             return call_user_func_array(new ExceptionHandler, func_get_args());
         };
+
+
+        // instance, if needed
+
+        static::$instance = $this;
 
     }
 
@@ -158,6 +172,17 @@ class Slim
 
             'database' => []
         ];
+    }
+
+    /**
+     * Set the globally available instance of the app
+     * Needed to be instantiated first
+     *
+     * @return static
+     */
+    public static function getInstance()
+    {
+        return static::$instance;
     }
 
 
