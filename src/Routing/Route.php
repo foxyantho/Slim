@@ -56,12 +56,6 @@ class Route implements RouteInterface
      */
     protected $name;
 
-    /**
-     * Route parameters
-     * @var array
-     */
-    protected $arguments = [];
-
 
     /**
      * Create new route
@@ -151,28 +145,6 @@ class Route implements RouteInterface
         return $this;
     }
 
-    /**
-     * Retrieve route arguments
-     * 
-     * @param  array  $arguments 
-     * @return self
-     */
-    public function arguments( array $arguments )
-    {
-        $this->arguments = $arguments;
-
-        return $this;
-    }
-
-    /**
-     * Retrieve route arguments
-     * @return array
-     */
-    public function getArguments()
-    {
-        return $this->arguments;
-    }
-
 
     /********************************************************************************
      * Route Runner
@@ -209,7 +181,7 @@ class Route implements RouteInterface
     public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
 
-        return [ $request, $response, $this->handler, $this->arguments ];
+        return [ $request, $response, $this->handler ];
     }
 
 
