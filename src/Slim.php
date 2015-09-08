@@ -17,7 +17,6 @@ use Slim\Http\Request as HttpRequest;
 use Slim\Http\Response as HttpResponse;
 
 use Slim\Routing\Router;
-use FastRoute\Dispatcher as RouteDispatcher;
 
 use Slim\Handlers\Found as FoundHandler;
 use Slim\Handlers\NotFound as NotFoundHandler;
@@ -272,10 +271,6 @@ class Slim
 
         $route = $this->router->map($methods, $pattern, $callable);
 
-        if (is_callable([$route, 'setOutputBuffering'])) {
-            $route->setOutputBuffering($this->container->get('settings')['outputBuffering']);
-        }
-
         return $route;
     }
 
@@ -417,39 +412,43 @@ class Slim
      */
     public function __invoke( Request $request, Response $response )
     {
-        $routeInfo = $this->router->dispatch($request);
+
+        $routeInfo = $this->router->dispatch(
+            $request->getMethod(),
+            $request->getUriPath()
+        );
 
         // 0 -> type
-        // 1 -> [Route, 'run']
-        // 2 -> arguments
+        // 1 -> Route
+        // 2 -> uri arguments
 
-        if( $routeInfo[0] === RouteDispatcher::FOUND )
+        if( $routeInfo[0] === Router::FOUND )
         {
             // URL decode the named arguments from the router
             // dispatchRouterAndPrepareRoute
 
             $attributes = array_map('urldecode', $routeInfo[2]);
 
-            $route = $routeInfo[1][0]->arguments($attributes);
+            $request->attributes($attributes);
 
-            // $request->attributes($attributes)
+            // traverse route middlewares :
 
-            list( $request, $response, $handler, $attributes ) = $route($request, $response);
+            list( $request, $response, $handler ) = $routeInfo[1]->run($request, $response);
 
 
             $foundHandler = $this->foundHandler;
 
-            return $foundHandler($request, $response, $handler, $attributes);
+            return $foundHandler($request, $response, $handler);
         }
 
-        if( $routeInfo[0] === RouteDispatcher::NOT_FOUND )
+        if( $routeInfo[0] === Router::NOT_FOUND )
         {
             $notFoundHandler = $this->notFoundHandler;
 
             return $notFoundHandler($request, $response);
         }
 
-        if( $routeInfo[0] === RouteDispatcher::METHOD_NOT_ALLOWED )
+        if( $routeInfo[0] === Router::METHOD_NOT_ALLOWED )
         {
             $notAllowedHandler = $this->notAllowedHandler;
 

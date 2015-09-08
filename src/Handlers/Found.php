@@ -12,7 +12,7 @@ use Slim\Handlers\Interfaces\HandlerInterface;
 use Slim\Http\Interfaces\RequestInterface as Request;
 use Slim\Http\Interfaces\ResponseInterface as Response;
 
-use Exception as BaseException;
+use Exception;
 
 /**
  * Route callback strategy with route parameters as individual arguments.
@@ -30,7 +30,7 @@ class Found implements HandlerInterface
      *
      * @return mixed
      */
-    public function __invoke( Request $request, Response $response, $handler = null, array $arguments = [] )
+    public function __invoke( Request $request, Response $response, $handler = null )
     {
         // invoke route callable
 
@@ -38,13 +38,13 @@ class Found implements HandlerInterface
         {
             ob_start();
 
-            $newResponse = call_user_func_array($handler, [$request, $response] + $arguments);
+            $newResponse = call_user_func_array($handler, [ $request, $response ] + $request->getAttributes());
 
             // @TODO: prefering using return response
             $output = ob_get_clean();
 
         }
-        catch( BaseException $e )
+        catch( Exception $e )
         {
             ob_end_clean();
 

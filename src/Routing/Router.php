@@ -1,23 +1,22 @@
 <?php
+
 /**
- * Slim Framework (http://slimframework.com)
+ * Slim - a micro PHP 5 framework
  *
- * @link      https://github.com/codeguy/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
- * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
+ * @author      Josh Lockhart <info@slimframework.com>
+ * @copyright   2011 Josh Lockhart
+ * @link        http://www.slimframework.com
+ * @license     MIT
+ * @version     2.6.3
+ * @package     Slim
  */
 
 namespace Slim\Routing;
 
 use Slim\Routing\Interfaces\RouterInterface;
-use Slim\Http\Interfaces\RequestInterface;
+use Slim\Routing\Interfaces\RouteInterface;
 
-use FastRoute\RouteCollector;
-use FastRoute\RouteParser;
-use FastRoute\DataGenerator;
-use FastRoute\RouteParser\Std as StdParser;
-use FastRoute\DataGenerator\GroupCountBased as GroupCountBasedGenerator;
-use FastRoute\Dispatcher\GroupCountBased as GroupCountBasedDispatcher;
+use Slim\Http\Interfaces\RequestInterface as Request;
 
 use InvalidArgumentException;
 use RuntimeException;
@@ -25,42 +24,53 @@ use RuntimeException;
 /**
  * Router
  *
- * This class organizes Slim application route objects. It is responsible
- * for registering route objects, assigning names to route objects,
- * finding routes that match the current HTTP request, and creating
- * URLs for a named route.
+ * This class organizes, iterates, and dispatches \Slim\Route objects.
+ *
+ * @package Slim
+ * @author  Josh Lockhart
+ * @since   1.0.0
  */
-class Router extends RouteCollector implements RouterInterface
+class Router implements RouterInterface
 {
 
+    const FOUND = 0;
+
+    const NOT_FOUND = 1;
+
+    const METHOD_NOT_ALLOWED = 2;
+
+
     /**
-     * Routes
-     *
-     * @var Route[]
+     * lookup of all route objects
+     * @var array
      */
     protected $routes = [];
 
     /**
-     * Named routes
-     *
-     * @var null|Route[]
+     * default conditions applied to all route instances
+     * @var array
      */
-    protected $namedRoutes;
+    protected static $defaultConditions = [];
+
 
 
     /**
-     * Create new router
-     *
-     * @param \FastRoute\RouteParser   $parser
-     * @param \FastRoute\DataGenerator $generator
+     * Set default route conditions for all instances
+     * 
+     * @param  array $defaultConditions
      */
-    public function __construct( RouteParser $parser = null, DataGenerator $generator = null )
+    public static function defaultConditions( array $defaultConditions )
     {
-        $parser = $parser ?: new StdParser;
-
-        $generator = $generator ?: new GroupCountBasedGenerator;
-
-        parent::__construct($parser, $generator);
+        self::$defaultConditions = $defaultConditions;
+    }
+    /**
+     * Get default route conditions for all instances
+     * 
+     * @return array
+     */
+    public static function getDefaultConditions()
+    {
+        return self::$defaultConditions;
     }
 
     /**
@@ -83,62 +93,124 @@ class Router extends RouteCollector implements RouterInterface
         $route = new Route($methods, $pattern, $handler);
 
         // FastRoute
-        $this->addRoute($methods, $pattern, [$route, 'run']);
-
+        // $this->addRoute($methods, $pattern, [$route, 'run']);
 
         $this->routes[] = $route;
 
         return $route;
     }
 
-    /**
-     * Dispatch router for HTTP request
-     *
-     * @param  RequestInterface $request The current HTTP request object
-     *
-     * @return array
-     * @link   https://github.com/nikic/FastRoute/blob/master/src/Dispatcher.php
-     */
-    public function dispatch( RequestInterface $request )
+    protected function addRoute( RouteInterface $route )
     {
-        $dispatcher = new GroupCountBasedDispatcher($this->getData());
 
-        return $dispatcher->dispatch(
-            $request->getMethod(),
-            $request->getUriPath()
-        );
     }
 
     /**
-     * Build URL for named route
-     *
-     * @param  string $name        Route name
-     * @param  array  $data        Route URI segments replacement data
-     * @param  array  $queryParams Optional query string parameters
-     *
-     * @return string
-     * @throws \RuntimeException         If named route does not exist
-     * @throws \InvalidArgumentException If required data not provided
+     * Dispatch router for HTTP request
+     * 
+     * @param  string $httpMethod
+     * @param  string $uri
+     * @return array
+     * @link   https://github.com/nikic/FastRoute/
      */
-    public function urlFor( $name, array $data = [], array $queryParams = [] )
+    public function dispatch( $httpMethod, $uri)
     {
-        if( is_null($this->namedRoutes) )
+
+        foreach( $this->routes as $route )
         {
-            // no named routes, so build it
-            $this->buildNameIndex();
+            // get regex of route pattern    /user/{name}/{id:[0-9]+}
+
+            $regex = preg_replace_callback(
+
+                '#' .
+                    '{' .
+                        '\s*([a-zA-Z][a-zA-Z0-9_]*)\s*' .
+
+                        '(?:' .
+                            ':\s*([^{}]*(?:{(?-1)}[^{}]*)*)' .
+                        ')?' .
+                    '}' .
+                '#',
+
+                [$this, 'matchesCallback'],
+
+                $route->getPattern()
+            );
+
+            //    /user/(?P<name>[^/]+)/(?P<id>[0-9]+)
+
+
+            // check if pattern regex match the uri
+
+            if( preg_match('#^' . $regex . '$#', $uri, $params) )
+            {
+
+                // compare server request method with route's allowed http methods
+
+                if( !in_array($httpMethod, $allowedMethods = $route->getMethods()) )
+                {
+                    return [ static::METHOD_NOT_ALLOWED, $allowedMethods ];
+                }
+
+                // only keep named params
+
+                foreach( $params as $key => $value )
+                {
+                    if( is_int($key) )
+                    {
+                        unset($params[$key]);
+                    }
+                }
+
+                // route is found :
+                
+                return [ static::FOUND, $route, $params];
+            }
         }
 
-        if( !isset($this->namedRoutes[$name]) )
+        // check all routes, but not found
+
+        return [ static::NOT_FOUND ];
+    }
+
+
+
+
+    /**
+     * Convert a URL parameter into a regular expression
+     * 
+     * @param  array $m
+     * @return string
+     */
+    protected function matchesCallback( array $m )
+    {
+        if( isset($m[2]) ) // {id:"[0-9]+"}
         {
-            throw new RuntimeException('Named route does not exist for name: ' . $name);
+            return sprintf( '(?P<%s>%s)', $m[1], $m[2] );
         }
 
+        if( isset(static::$defaultConditions[$m[1]]) ) // {"id"}
+        {
+            return sprintf( '(?P<%s>%s)', $m[1], static::$defaultConditions[$m[1]] );
+        }
 
-        $route = $this->namedRoutes[$name];
+        return sprintf( '(?P<%s>%s)', $m[1], '[^/]+' ); // default
+    }
 
-        $pattern = $route->getPattern();
 
-        // url/x/y
+
+
+
+    public function urlFor()
+    {
+
+
+
+
+
+
+        
+        // alternative without need of explode : /{([a-zA-Z0-9_]+)(?::\s*[^{}]*(?:\{(?-1)\}[^{}]*)*)?}/
 
         $url = preg_replace_callback('/{([^}]+)}/', function( $match ) use ( $data )
         {
@@ -152,33 +224,10 @@ class Router extends RouteCollector implements RouterInterface
             return $data[$segmentName];
 
         }, $pattern);
-
-        // query params ?x=x
-
-        if( $queryParams )
-        {
-            $url .= '?' . http_build_query($queryParams);
-        }
-
-
-        return $url;
     }
 
-    /**
-     * Build index of named routes
-     */
-    protected function buildNameIndex()
-    {
-        $this->namedRoutes = [];
 
-        foreach( $this->routes as $route )
-        {
-            if( $name = $route->getName() )
-            {
-                $this->namedRoutes[$name] = $route;
-            }
-        }
-    }
+
 
 
 }
