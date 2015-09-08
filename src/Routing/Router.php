@@ -47,11 +47,16 @@ class Router implements RouterInterface
     protected $routes = [];
 
     /**
+     * Named pattern index of routes
+     * @var null|array
+     */
+    protected $namedPatternIndex;
+
+    /**
      * default conditions applied to all route instances
      * @var array
      */
     protected static $defaultConditions = [];
-
 
 
     /**
@@ -173,9 +178,6 @@ class Router implements RouterInterface
         return [ static::NOT_FOUND ];
     }
 
-
-
-
     /**
      * Convert a URL parameter into a regular expression
      * 
@@ -197,36 +199,82 @@ class Router implements RouterInterface
         return sprintf( '(?P<%s>%s)', $m[1], '[^/]+' ); // default
     }
 
-
-
-
-
-    public function urlFor()
+    /**
+     * Build URL for named route
+     *
+     * @param  string $name
+     * @param  array  $data        URI segments replacement data
+     * @param  array  $queryParams Optional query string parameters
+     *
+     * @return string
+     * @throws \RuntimeException         If named route does not exist
+     * @throws \InvalidArgumentException If required data not provided
+     */
+    public function urlFor( $name, array $data = [], array $queryParams = [] )
     {
 
+        if( is_null($this->namedPatternIndex) )
+        {
+            // no named routes, so lazy-build it
+
+            $this->buildNamedPatternIndex();
+        }
+
+        if( !isset($this->namedPatternIndex[$name]) )
+        {
+            throw new RuntimeException('Named route does not exist for name : ' . $name);
+        }
 
 
+        $pattern = $this->namedPatternIndex[$name];
 
 
-
-        
         // alternative without need of explode : /{([a-zA-Z0-9_]+)(?::\s*[^{}]*(?:\{(?-1)\}[^{}]*)*)?}/
 
-        $url = preg_replace_callback('/{([^}]+)}/', function( $match ) use ( $data )
-        {
-            $segmentName = explode(':', $match[1])[0];
+        $url = preg_replace_callback(
 
-            if( !isset($data[$segmentName]) )
+            '/{([^}]+)}/',
+
+            function( $match ) use ( $data )
             {
-                throw new InvalidArgumentException('Missing data for URL segment: ' . $segmentName);
-            }
+                $segmentName = explode(':', $match[1])[0];
 
-            return $data[$segmentName];
+                if( !isset($data[$segmentName]) )
+                {
+                    throw new InvalidArgumentException('Missing data for URL segment: ' . $segmentName);
+                }
 
-        }, $pattern);
+                return $data[$segmentName];
+            },
+
+            $pattern);
+
+        // query params ?x=x
+
+        if( $queryParams )
+        {
+            $url .= '?' . http_build_query($queryParams);
+        }
+
+
+        return $url;
     }
 
+    /**
+     * Build index of pattern for named routes ; used in urlFor()
+     */
+    protected function buildNamedPatternIndex()
+    {
+        $this->namedRoutes = [];
 
+        foreach( $this->routes as $route )
+        {
+            if( $name = $route->getName() )
+            {
+                $this->namedPatternIndex[$name] = $route->getPattern();
+            }
+        }
+    }
 
 
 
