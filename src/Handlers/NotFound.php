@@ -31,8 +31,57 @@ class NotFound implements HandlerInterface
      */
     public function __invoke( Request $request, Response $response )
     {
-        $output = sprintf(
-            '<html>
+
+        $contentType = $this->determineContentType($request->getHeader('Accept'));
+
+        switch( $contentType )
+        {
+            case 'text/html':
+                $output = $this->renderHtmlMessage();
+            break;
+
+            case 'application/json':
+                $output = $this->renderJsonMessage();
+            break;
+
+            default:
+                $output = 'NotFound';
+            break;
+        }
+
+
+        return $response->status(404)
+                        ->header('Content-Type', $contentType)
+                        ->write($output);
+    }
+
+    /**
+     * Read the accept header and determine which content type we know about
+     * is wanted.
+     *
+     * @param  string $acceptHeader Accept header from request
+     * @return string
+     */
+    protected function determineContentType( $acceptHeader )
+    {
+        $list = explode(',', $acceptHeader);
+
+        $known = ['text/html', 'application/json'];
+        
+        foreach( $list as $type )
+        {
+            if( in_array($type, $known) )
+            {
+                return $type;
+            }
+        }
+
+        return 'text/html';
+    }
+
+    protected function renderHtmlMessage()
+    {
+        return '<html>
                 <head>
                     <title>Page Not Found</title>
                     <style>
@@ -48,15 +97,24 @@ class NotFound implements HandlerInterface
                         to ensure your URL is spelled correctly. If all else fails, you can
                         visit our home page at the link below.
                     </p>
-                    <a href="%s">Visit the Home Page</a>
+                    <a href="/">Visit the Home Page</a>
                 </body>
-            </html>',
-            $request->getRootUri()
-        );
+                </html>';
+    }
 
-        return $response->status(404)
-                        ->header('Content-Type', 'text/html')
-                        ->write($output);
+    protected function renderJsonMessage()
+    {
+        return json_encode([
+
+            'error' => 
+            [
+                'code' => 404,
+
+                'type' => 'NotFound',
+
+                'message' => 'Page not found'
+            ]
+        ]);
     }
 
 

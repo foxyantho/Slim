@@ -32,6 +32,58 @@ class NotAllowed implements HandlerInterface
      */
     public function __invoke( Request $request, Response $response, array $methods = [] )
     {
+
+        $contentType = $this->determineContentType($request->getHeader('Accept'));
+
+        switch( $contentType )
+        {
+            case 'text/html':
+                $output = $this->renderHtmlMessage($methods);
+            break;
+
+            case 'application/json':
+                $output = $this->renderJsonMessage($methods);
+            break;
+
+            default:
+                $output = 'NotAllowed';
+            break;
+        }
+
+
+        return $response
+                ->status(405)
+                ->header('Content-type', $contentType)
+                ->header('Allow', implode(', ', $methods))
+                ->write($output);
+    }
+
+    /**
+     * Read the accept header and determine which content type we know about
+     * is wanted.
+     *
+     * @param  string $acceptHeader Accept header from request
+     * @return string
+     */
+    protected function determineContentType( $acceptHeader )
+    {
+        $list = explode(',', $acceptHeader);
+
+        $known = ['text/html', 'application/json'];
+        
+        foreach( $list as $type )
+        {
+            if( in_array($type, $known) )
+            {
+                return $type;
+            }
+        }
+
+        return 'text/html';
+    }
+
+    protected function renderHtmlMessage( array $methods = [] )
+    {
         $allowed_methods = array_pop($methods);
 
         if( $methods )
@@ -39,11 +91,25 @@ class NotAllowed implements HandlerInterface
             $allowed_methods = implode(', ', $methods) . ' or ' . $last;
         }
 
-        return $response
-                ->status($status)
-                ->header('Content-type', $contentType)
-                ->header('Allow', implode(', ', $methods))
-                ->Write('Method not allowed. Must be one of: ' . $allowed_methods);
+        return 'Method not allowed. Must be one of : ' . $allowed_methods;
+    }
+
+    protected function renderJsonMessage( array $methods = [] )
+    {
+        return json_encode([
+
+            'error' => 
+            [
+                'code' => 405,
+
+                'type' => 'NotAllowed',
+
+                'message' => 'Method not allowed',
+
+
+                'allowed' => $methods
+            ]
+        ]);
     }
 
 
