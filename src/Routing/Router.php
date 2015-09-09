@@ -81,13 +81,13 @@ class Router implements RouterInterface
     /**
      * Add route
      *
-     * @param  string[] $methods Array of HTTP methods
-     * @param  string   $pattern The route pattern
-     * @param  callable $handler The route callable
+     * @param  string[]        $methods
+     * @param  string          $pattern
+     * @param  callable|string $handler
      * @return \Slim\Interfaces\RouteInterface
      * @throws InvalidArgumentException if the route pattern isn't a string
      */
-    public function map( $methods, $pattern, $handler )
+    public function map( array $methods, $pattern, $handler )
     {
         if( !is_string($pattern) )
         {
@@ -97,17 +97,10 @@ class Router implements RouterInterface
         // Add route
         $route = new Route($methods, $pattern, $handler);
 
-        // FastRoute
-        // $this->addRoute($methods, $pattern, [$route, 'run']);
-
         $this->routes[] = $route;
 
+
         return $route;
-    }
-
-    protected function addRoute( RouteInterface $route )
-    {
-
     }
 
     /**
@@ -181,7 +174,7 @@ class Router implements RouterInterface
     /**
      * Convert a URL parameter into a regular expression
      * 
-     * @param  array $m
+     * @param  array $m regex matches
      * @return string
      */
     protected function matchesCallback( array $m )
@@ -196,7 +189,7 @@ class Router implements RouterInterface
             return sprintf( '(?P<%s>%s)', $m[1], static::$defaultConditions[$m[1]] );
         }
 
-        return sprintf( '(?P<%s>%s)', $m[1], '[^/]+' ); // default
+        return sprintf( '(?P<%s>%s)', $m[1], '[^/]+' ); // default, everything
     }
 
     /**
@@ -233,7 +226,7 @@ class Router implements RouterInterface
 
         $url = preg_replace_callback(
 
-            '/{([^}]+)}/',
+            '#{([^}]+)}#',
 
             function( $match ) use ( $data )
             {
