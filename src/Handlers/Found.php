@@ -55,21 +55,21 @@ class Found implements HandlerInterface
 
         if( $newResponse instanceof Response )
         {
-            return $newResponse;
+            $response = $newResponse;
         }
 
         // if route callback retuns a string, then append it to the response
 
         if( is_string($newResponse) )
         {
-            return $response->write($newResponse);
+            $response->write($newResponse);
         }
 
         // append output buffer content if there is any
 
         if( $output )
         {
-            return $response->write($output);
+            $response->write($output);
         }
 
         // nothing, return original response
