@@ -47,10 +47,10 @@ class Router implements RouterInterface
     protected $routes = [];
 
     /**
-     * Named pattern index of routes
+     * look-up table pattern of routes ; used in urlfor()
      * @var null|array
      */
-    protected $namedPatternIndex;
+    protected $lookupTable;
 
     /**
      * default conditions applied to all route instances
@@ -210,20 +210,20 @@ class Router implements RouterInterface
     public function urlFor( $name, array $data = [], array $queryParams = [] )
     {
 
-        if( is_null($this->namedPatternIndex) )
+        if( is_null($this->lookupTable) )
         {
             // no named routes, so lazy-build it
 
-            $this->buildNamedPatternIndex();
+            $this->buildLookupTable();
         }
 
-        if( !isset($this->namedPatternIndex[$name]) )
+        if( !isset($this->lookupTable[$name]) )
         {
             throw new RuntimeException('Named route does not exist for name : ' . $name);
         }
 
 
-        $pattern = $this->namedPatternIndex[$name];
+        $pattern = $this->lookupTable[$name];
 
 
         // alternative without need of explode : /{([a-zA-Z0-9_]+)(?::\s*[^{}]*(?:\{(?-1)\}[^{}]*)*)?}/
@@ -259,9 +259,9 @@ class Router implements RouterInterface
     }
 
     /**
-     * Build index of pattern for named routes ; used in urlFor()
+     * lazy-load index of pattern for named routes ; used in urlFor()
      */
-    protected function buildNamedPatternIndex()
+    protected function buildLookupTable()
     {
         $this->namedRoutes = [];
 
@@ -269,7 +269,7 @@ class Router implements RouterInterface
         {
             if( $name = $route->getName() )
             {
-                $this->namedPatternIndex[$name] = $route->getPattern();
+                $this->lookupTable[$name] = $route->getPattern();
             }
         }
     }
