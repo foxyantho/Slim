@@ -179,17 +179,21 @@ class Router implements RouterInterface
      */
     protected function matchesCallback( array $m )
     {
-        if( isset($m[2]) ) // {id:"[0-9]+"}
+        $condition = '[^/]+'; // default, everything
+
+        if( isset($m[2]) )
         {
-            return sprintf( '(?P<%s>%s)', $m[1], $m[2] );
+            if( isset(static::$defaultConditions[$m[2]]) )
+            {
+                $condition = static::$defaultConditions[$m[2]]; // {id:"id"}
+            }
+            else
+            {
+                $condition = $m[2]; // {id:"[0-9]+"}
+            }
         }
 
-        if( isset(static::$defaultConditions[$m[1]]) ) // {"id"}
-        {
-            return sprintf( '(?P<%s>%s)', $m[1], static::$defaultConditions[$m[1]] );
-        }
-
-        return sprintf( '(?P<%s>%s)', $m[1], '[^/]+' ); // default, everything
+        return sprintf('(?P<%s>%s)', $m[1], $condition); 
     }
 
     /**
