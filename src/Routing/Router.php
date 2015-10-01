@@ -66,7 +66,7 @@ class Router implements RouterInterface
      */
     public static function defaultConditions( array $defaultConditions )
     {
-        self::$defaultConditions = $defaultConditions;
+        static::$defaultConditions = $defaultConditions;
     }
     /**
      * Get default route conditions for all instances
@@ -75,7 +75,7 @@ class Router implements RouterInterface
      */
     public static function getDefaultConditions()
     {
-        return self::$defaultConditions;
+        return static::$defaultConditions;
     }
 
     /**
