@@ -20,7 +20,7 @@ use RuntimeException;
 /**
  * ResolveCallable
  *
- * This is an internal class that enables resolution of 'class:method' strings
+ * This is an internal class that enables resolution of '\class@method' strings
  * into a closure. This class is an implementation detail and is used only inside
  * of the Slim application.
  */
@@ -28,7 +28,7 @@ trait ResolveCallableTrait
 {
 
     /**
-     * Resolve a string of the format 'class:method' into a closure that the router can dispatch.
+     * Resolve a string of the format '\class@method' into a closure that the router can dispatch.
      *
      * @param  string $callable
      * @return \Closure
@@ -46,11 +46,11 @@ trait ResolveCallableTrait
             return $callable->bindTo($this);
         }*/
 
-        if( is_string($callable) && strpos($callable, ':') )
+        if( is_string($callable) && strpos($callable, '@') )
         {
-            // check if a controller ( \Class:function )
+            // check if a controller ( \class@method )
 
-            if( preg_match('!^([^\:]+)\:([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)$!', $callable, $matches) )
+            if( preg_match('#^([^@]+)@([a-zA-Z0-9_]+)$#', $callable, $matches) )
             {
                 // wrap it into a closure
 
@@ -65,10 +65,9 @@ trait ResolveCallableTrait
                 };
             }
 
-            throw new RuntimeException('Callable "' . $callable . '" is not resolvable');
         }
 
-        throw new RuntimeException('Callable is not resolvable');
+        throw new RuntimeException('Callable "' . $callable . '" is not resolvable');
     }
 
 
