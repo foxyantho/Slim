@@ -240,7 +240,8 @@ class Router implements RouterInterface
                 return $data[$segmentName];
             },
 
-            $pattern);
+            $pattern
+        );
 
         // query params ?x=x
 
