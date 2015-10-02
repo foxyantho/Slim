@@ -140,7 +140,7 @@ class Slim
         };
 
         $this->exceptionHandler = function() {
-            return call_user_func_array(new ExceptionHandler, func_get_args());
+            return call_user_func_array(new ExceptionHandler($this->settings['displayErrorDetails']), func_get_args());
         };
 
 
@@ -162,6 +162,8 @@ class Slim
             'httpVersion' => '1.1',
 
             'use_rewrite' => true, //@TODO: implementation
+
+            'displayErrorDetails' => true,
 
 
             // Templates

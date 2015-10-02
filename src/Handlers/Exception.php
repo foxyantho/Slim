@@ -24,6 +24,19 @@ use Exception as BaseException;
 class Exception implements HandlerInterface
 {
 
+    protected $displayErrorDetails;
+
+
+    /**
+     * Constructor
+     *
+     * @param boolean $displayErrorDetails Set to true to display full details
+     */
+    public function __construct( $displayErrorDetails = false )
+    {
+        $this->displayErrorDetails = $displayErrorDetails;
+    }
+
     /**
      * Invoke error handler
      *
@@ -48,7 +61,7 @@ class Exception implements HandlerInterface
             break;
 
             default:
-                $output = 'NotFound';
+                $output = 'Exception';
             break;
         }
 
@@ -84,16 +97,23 @@ class Exception implements HandlerInterface
 
     protected function renderHtmlMessage( BaseException $exception )
     {
-        $html = '<p>The application could not run because of the following error:</p>';
-        $html .= '<h2>Details</h2>';
-
-        $html .= $this->renderHtmlException($exception);
-
-        while( $exception = $exception->getPrevious() )
+        if( $this->displayErrorDetails )
         {
-            $html .= '<h2>Previous exception</h2>';
+            $html = '<p>The application could not run because of the following error:</p>' .
+                    '<h2>Details</h2>';
 
             $html .= $this->renderHtmlException($exception);
+
+            while( $exception = $exception->getPrevious() )
+            {
+                $html .= '<h2>Previous exception</h2>';
+
+                $html .= $this->renderHtmlException($exception);
+            }
+        }
+        else
+        {
+            $html = '<p>A website error has occurred. Sorry for the temporary inconvenience.</p>';
         }
 
         return sprintf(
@@ -124,37 +144,34 @@ class Exception implements HandlerInterface
      * @param Exception $exception
      * @return string
      */
-    private function renderHtmlException( BaseException $exception )
+    protected function renderHtmlException( BaseException $exception )
     {
-        $code = $exception->getCode();
-        $message = $exception->getMessage();
-        $file = $exception->getFile();
-        $line = $exception->getLine();
-
-        $trace = str_replace(['#', '\n'], ['<div>#', '</div>'], $exception->getTraceAsString());
-
         $html = sprintf('<div><strong>Type:</strong> %s</div>', get_class($exception));
 
-        if( $code )
+        if( ($code = $exception->getCode()) )
         {
             $html .= sprintf('<div><strong>Code:</strong> %s</div>', $code);
         }
-        if( $message )
+
+        if( ($message = $exception->getMessage()) )
         {
-            $html .= sprintf('<div><strong>Message:</strong> %s</div>', $message);
+            $html .= sprintf('<div><strong>Message:</strong> %s</div>', htmlentities($message));
         }
-        if( $file )
+
+        if( ($file = $exception->getFile()) )
         {
             $html .= sprintf('<div><strong>File:</strong> %s</div>', $file);
         }
-        if( $line )
+
+        if( ($line = $exception->getLine()) )
         {
             $html .= sprintf('<div><strong>Line:</strong> %s</div>', $line);
         }
-        if( $trace )
+
+        if( ($trace = $exception->getTraceAsString()) )
         {
             $html .= '<h2>Trace</h2>';
-            $html .= sprintf('<pre>%s</pre>', $trace);
+            $html .= sprintf('<pre>%s</pre>', htmlentities($trace));
         }
 
         return $html;
@@ -170,10 +187,11 @@ class Exception implements HandlerInterface
 
                 'type' => 'Exception',
 
-                'message' => 'Application Error'
+                'message' => 'Application Error',
+
+                'exception' => $exception->getMessage(),
             ]
         ]);
     }
-
 
 }
