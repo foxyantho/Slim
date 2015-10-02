@@ -68,6 +68,7 @@ class Router implements RouterInterface
     {
         static::$defaultConditions = $defaultConditions;
     }
+
     /**
      * Get default route conditions for all instances
      * 
@@ -82,25 +83,41 @@ class Router implements RouterInterface
      * Add route
      *
      * @param  string[]        $methods
-     * @param  string          $pattern
+     * @param  string          $uri
      * @param  callable|string $handler
+     * 
      * @return \Slim\Interfaces\RouteInterface
      * @throws InvalidArgumentException if the route pattern isn't a string
      */
-    public function map( array $methods, $pattern, $handler )
+    public function map( array $methods, $uri, $handler )
     {
-        if( !is_string($pattern) )
+        if( !is_string($uri) )
         {
-            throw new InvalidArgumentException('Route pattern must be a string');
+            throw new InvalidArgumentException('Route uri must be a string');
         }
 
         // Add route
-        $route = new Route($methods, $pattern, $handler);
+
+        $route = $this->newRoute($methods, $uri, $handler);
 
         $this->routes[] = $route;
 
 
         return $route;
+    }
+
+    /**
+     * Create a new Route object.
+     *
+     * @param  array  $methods
+     * @param  string $uri
+     * @param  mixed  $handler
+     *
+     * @return \Slim\Interfaces\RouteInterface
+     */
+    protected function newRoute( array $methods, $uri, $handler )
+    {
+        return ( new Route($methods, $uri, $handler) );
     }
 
     /**
@@ -116,7 +133,7 @@ class Router implements RouterInterface
 
         foreach( $this->routes as $route )
         {
-            // get regex of route pattern    /user/{name}/{id:[0-9]+}
+            // get regex of route pattern    /user/{name}/{id:[0-9]+}/{page:int}
 
             $regex = preg_replace_callback(
 
@@ -132,7 +149,7 @@ class Router implements RouterInterface
 
                 [$this, 'matchesCallback'],
 
-                $route->getPattern()
+                $route->getUri()
             );
 
             //    /user/(?P<name>[^/]+)/(?P<id>[0-9]+)
@@ -263,13 +280,13 @@ class Router implements RouterInterface
      */
     protected function buildLookupTable()
     {
-        $this->namedRoutes = [];
+        $this->lookupTable = [];
 
         foreach( $this->routes as $route )
         {
             if( $name = $route->getName() )
             {
-                $this->lookupTable[$name] = $route->getPattern();
+                $this->lookupTable[$name] = $route->getUri();
             }
         }
     }

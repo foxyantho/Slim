@@ -39,10 +39,10 @@ class Route implements RouteInterface
     protected $methods = [];
 
     /**
-     * Route pattern
+     * Route uri "/hello/world"
      * @var string
      */
-    protected $pattern;
+    protected $uri;
 
     /**
      * Route handler
@@ -61,15 +61,15 @@ class Route implements RouteInterface
      * Create new route
      *
      * @param string[]     $methods The route HTTP methods
-     * @param string       $pattern The route pattern
+     * @param string       $uri The route pattern
      * @param handler     $handler The route handler
      * @param RouteGroup[] $groups The parent route groups
      */
-    public function __construct( $methods, $pattern, $handler )
+    public function __construct( $methods, $uri, $handler )
     {
         $this->methods = $methods;
 
-        $this->pattern = $pattern;
+        $this->uri = $uri;
 
         $this->handler = $handler;
     }
@@ -98,13 +98,13 @@ class Route implements RouteInterface
     }
 
     /**
-     * Get route pattern
+     * Get route uri
      *
      * @return string
      */
-    public function getPattern()
+    public function getUri()
     {
-        return $this->pattern;
+        return $this->uri;
     }
 
     /**
