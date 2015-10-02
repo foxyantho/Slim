@@ -86,19 +86,13 @@ trait MiddlewareAwareTrait
     /**
      * Seed middleware stack with first callable
      *
-     * @param callable $kernel The last item to run as middleware
      * @throws RuntimeException if the stack is seeded more than once
      */
-    protected function seedMiddlewareStack( callable $kernel = null )
+    protected function seedMiddlewareStack()
     {
         if( !is_null($this->stack) )
         {
             throw new RuntimeException('MiddlewareStack can only be seeded once.');
-        }
-
-        if( $kernel === null )
-        {
-            $kernel = $this;
         }
 
 
@@ -106,7 +100,10 @@ trait MiddlewareAwareTrait
 
         $this->stack->setIteratorMode(SplDoublyLinkedList::IT_MODE_LIFO | SplDoublyLinkedList::IT_MODE_KEEP);
 
-        $this->stack[] = $kernel;
+
+        // add kernel
+
+        $this->stack[] = $this;
     }
 
     /**
