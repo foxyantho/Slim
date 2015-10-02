@@ -58,6 +58,12 @@ class Router implements RouterInterface
      */
     protected static $defaultConditions = [];
 
+    /**
+     * URI base path "//example.com/folder/" used in urlfor()
+     * @var string
+     */
+    protected $uriRoot;
+
 
     /**
      * Set default route conditions for all instances
@@ -77,6 +83,25 @@ class Router implements RouterInterface
     public static function getDefaultConditions()
     {
         return static::$defaultConditions;
+    }
+
+    /**
+     * Set the URI base path used in urlfor()
+     *
+     * @param string $uri
+     *
+     * @return self
+     */
+    public function setUriRoot( $uri )
+    {
+        if( !is_string($uri) )
+        {
+            throw new InvalidArgumentException('Router basePath must be a string');
+        }
+
+        $this->uriRoot = $uri;
+
+        return $this;
     }
 
     /**
@@ -263,6 +288,13 @@ class Router implements RouterInterface
 
             $pattern
         );
+
+        // set uri base path if set
+
+        if( $this->uriRoot )
+        {
+            $url = $this->uriRoot . ltrim($url, '/');
+        }
 
         // query params ?x=x
 

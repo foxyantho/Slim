@@ -122,7 +122,7 @@ class Slim
 
         $this->router = new Router;
 
-        //$router->setBasePath($request->Uri->getBasePath());
+        $this->router->setUriRoot($this->request->getUriRoot()); // urlfor() stuff
 
 
         // handlers
