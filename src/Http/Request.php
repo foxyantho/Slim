@@ -493,9 +493,11 @@ class Request implements RequestInterface
      */
     public function getUriBasePath()
     {
-        $basePath = dirname($this->serverParams['SCRIPT_NAME']); // "'/'index.php", "'/folder/'index.php"
+        $basePath = dirname($this->serverParams['SCRIPT_NAME']); // "/"index.php, "/folder/"index.php
 
-        return $basePath !== '.' ? '/' . trim($basePath, '/') . '/' : '/';
+        return $basePath !== '.' ?
+
+            sprintf('/%s/', trim($basePath, '/'))   :   '/';
     }
 
     /**
