@@ -313,7 +313,7 @@ class Request implements RequestInterface
      */
     public function isXhr()
     {
-        return $this->getHeaderLine('X-Requested-With') === 'XMLHttpRequest';
+        return $this->getHeader('X-Requested-With') === 'XMLHttpRequest';
     }
 
 
