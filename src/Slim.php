@@ -2,15 +2,16 @@
 /**
  * Slim Framework (http://slimframework.com)
  *
- * @link      https://github.com/codeguy/Slim
+ * @link      https://github.com/slimphp/Slim
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
- * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
 namespace Slim;
 
 use Slim\Http\Interfaces\RequestInterface as Request;
 use Slim\Http\Interfaces\ResponseInterface as Response;
+
 use Slim\Http\Environment as HttpEnvironment;
 use Slim\Http\Headers as HttpHeaders;
 use Slim\Http\Request as HttpRequest;
@@ -20,13 +21,15 @@ use Slim\Routing\Router;
 
 use Slim\Handlers\Found as FoundHandler;
 use Slim\Handlers\NotFound as NotFoundHandler;
-use Slim\Handlers\Exception as ExceptionHandler;
 use Slim\Handlers\NotAllowed as NotAllowedHandler;
+use Slim\Handlers\Exception as ExceptionHandler;
 
 use Closure;
 
 use Exception;
-use Slim\Exception as SlimException;
+use Slim\Exceptions\NotFoundException;
+use Slim\Exceptions\MethodNotAllowedException;
+use Slim\Exceptions\SlimException;
 
 /**
  * App
@@ -180,7 +183,7 @@ class Slim
      * Set the globally available instance of the app
      * Needed to be instantiated first
      *
-     * @return static
+     * @return static|null
      */
     public static function getInstance()
     {
@@ -330,30 +333,52 @@ class Slim
      * Run application
      * This method traverses the application middleware stack and then sends the
      * resultant Response object to the HTTP client.
+     * 
+     * @param bool|false $silent
+     * @return ResponseInterface
      */
-    public function run()
+    public function run( $silent = false )
     {
-        // Traverse middleware stack
-
         try
         {
+            // Traverse middleware stack
+
             $response = $this->callMiddlewareStack($this->request, $this->response);
         }
-        catch ( SlimException $e )
+
+        catch( NotFoundException $e )
+        {
+            $handler = $this->notFoundHandler;
+
+            $response = $handler($this->request, $e->getResponse());
+        }
+
+        catch( MethodNotAllowedException $e )
+        {
+            $handler = $this->notAllowedHandler;
+
+            $response =  $handler($this->request, $e->getResponse(), $e->getAllowedMethods());
+        }
+
+        catch( SlimException $e )
         {
             $response = $e->getResponse();
         }
+
         catch( Exception $e )
         {
-            $exceptionHandler = $this->exceptionHandler;
+            $handler = $this->exceptionHandler;
 
-            $response = $exceptionHandler($this->request, $this->response, $e);
+            $response = $handler($this->request, $this->response, $e);
         }
-// @FIXME: :!_!:
+
 
         $response = $this->finalize($response);
 
-        $this->respond($response);
+        if( !$silent )
+        {
+            $this->respond($response);
+        }
 
 
         return $response;
@@ -375,12 +400,11 @@ class Slim
 
         // it has body :
 
-        $size = $response->getBodyLength();
-
-        if( $size > 0 )
+        if( $size = $response->getBodyLength() > 0 )
         {
-            $response = $response->header('Content-Length', (string) $size);
+            $response->header('Content-Length', (string) $size);
         }
+
 
         return $response;
     }
@@ -451,17 +475,21 @@ class Slim
 
         if( $routeInfo[0] === Router::FOUND )
         {
+
             // URL decode the named arguments from the router
-            // dispatchRouterAndPrepareRoute
+            // aka dispatchRouterAndPrepareRoute
 
             $attributes = array_map('urldecode', $routeInfo[2]);
 
             $request->attributes($attributes);
 
+
             // traverse route middlewares :
 
             list( $request, $response, $handler ) = $routeInfo[1]->run($request, $response);
 
+
+            // return the response :
 
             $foundHandler = $this->foundHandler;
 
@@ -470,16 +498,12 @@ class Slim
 
         if( $routeInfo[0] === Router::NOT_FOUND )
         {
-            $notFoundHandler = $this->notFoundHandler;
-
-            return $notFoundHandler($request, $response);
+            throw new NotFoundException($response);
         }
 
         if( $routeInfo[0] === Router::METHOD_NOT_ALLOWED )
         {
-            $notAllowedHandler = $this->notAllowedHandler;
-
-            return $notAllowedHandler($request, $response, $routeInfo[1]);
+            throw new MethodNotAllowedException($response, $routeInfo[1]);
         }
     }
 

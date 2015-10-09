@@ -2,9 +2,9 @@
 /**
  * Slim Framework (http://slimframework.com)
  *
- * @link      https://github.com/codeguy/Slim
+ * @link      https://github.com/slimphp/Slim
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
- * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
 namespace Slim\Http;
@@ -523,9 +523,7 @@ class Request implements RequestInterface
         {
             // remove base folder "'/folder/'index.php/route" or "'/folder/'route"
 
-            $basePath = $this->getUriBasePath();
-
-            if( strpos($requestUri, $basePath) === 0 )
+            if( strpos($requestUri, $basePath = $this->getUriBasePath()) === 0 )
             {
                 $requestUri = substr($requestUri, strlen($basePath));
             }

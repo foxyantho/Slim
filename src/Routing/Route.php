@@ -2,9 +2,9 @@
 /**
  * Slim Framework (http://slimframework.com)
  *
- * @link      https://github.com/codeguy/Slim
+ * @link      https://github.com/slimphp/Slim
  * @copyright Copyright (c) 2011-2015 Josh Lockhart
- * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
 namespace Slim\Routing;
@@ -13,8 +13,8 @@ use Slim\Routing\Interfaces\RouteInterface;
 use Slim\ResolveCallableTrait;
 use Slim\MiddlewareAwareTrait;
 
-use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\ResponseInterface;
+use Slim\Http\Interfaces\RequestInterface as Request;
+use Slim\Http\Interfaces\ResponseInterface as Response;
 
 use Closure;
 use Exception;
@@ -161,7 +161,7 @@ class Route implements RouteInterface
      *
      * @return ResponseInterface
      */
-    public function run( RequestInterface $request, ResponseInterface $response )
+    public function run( Request $request, Response $response )
     {
         // Traverse middleware stack and fetch updated response
         return $this->callMiddlewareStack($request, $response);
@@ -178,10 +178,12 @@ class Route implements RouteInterface
      * @return \Psr\Http\Message\ResponseInterface
      * @throws \Exception  if the route handler throws an exception
      */
-    public function __invoke( RequestInterface $request, ResponseInterface $response )
+    public function __invoke( Request $request, Response $response )
     {
 
         return [ $request, $response, $this->handler ];
+
+        //@TODO: @FIXME:  fix this mess & foundhandler
     }
 
 
