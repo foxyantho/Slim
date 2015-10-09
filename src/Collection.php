@@ -68,7 +68,7 @@ class Collection implements CollectionInterface
      *
      * @return mixed The key's value, or the default value
      */
-    public function get( $key, $default = false )
+    public function get( $key, $default = null )
     {
         return $this->has($key) ? $this->data[$key] : $default;
     }
