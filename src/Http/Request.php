@@ -191,16 +191,6 @@ class Request implements RequestInterface
      */
     public function getMethod()
     {
-        if( !isset($this->method) )
-        {
-            if( $method = $this->getHeader('X-Http-Method-Override') )
-            {
-                // override original method
-
-                $this->method = $method;
-            } //else @TODO: return 'unknow'
-        }
-
         return $this->method;
     }
 
@@ -213,7 +203,7 @@ class Request implements RequestInterface
      */
     protected function filterMethod( $method )
     {
-        // @TODO always a string ?
+        // @TODO: handler exception if not know
 
         $method = strtoupper($method);
 
@@ -228,7 +218,7 @@ class Request implements RequestInterface
    /**
      * Does this request use a given method?
      *
-     * @param  string $method HTTP method
+     * @param  string $method
      * @return bool
      */
     public function isMethod( $method )
@@ -324,18 +314,15 @@ class Request implements RequestInterface
 
     /**
      * Retrieves all message headers.
-     *
      * The keys represent the header name as it will be sent over the wire, and
      * each value is an array of strings associated with the header.
      *
-     *     // Represent the headers as a string
+     *     // Represent the headers
      *     foreach ($message->getHeaders() as $name => $values) {
-     *         echo $name . ": " . implode(", ", $values);
+     *         $headers[$name] = explode(',', $values);
      *     }
      *
-     * @return array Returns an associative array of the message's headers.
-     *               Each key MUST be a header name, and each value MUST be
-     *               an array of strings.
+     * @return array
      */
     public function getHeaders()
     {
@@ -346,9 +333,7 @@ class Request implements RequestInterface
      * Checks if a header exists by the given case-insensitive name.
      *
      * @param  string $name Case-insensitive header field name.
-     * @return bool         Returns true if any header names match the given header
-     *                      name using a case-insensitive string comparison. Returns
-     *                      false if no matching header name is found in the message.
+     * @return bool
      */
     public function hasHeader( $name )
     {
@@ -359,9 +344,7 @@ class Request implements RequestInterface
      * Retrieves a header by the given case-insensitive name as an array of strings.
      *
      * @param  string   $name Case-insensitive header field name.
-     * @return string[]       An array of string values as provided for the given
-     *                        header. If the header does not appear in the message,
-     *                        this method MUST return an empty array.
+     * @return string|null
      */
     public function getHeader( $name )
     {
