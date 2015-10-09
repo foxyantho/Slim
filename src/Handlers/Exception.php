@@ -24,17 +24,17 @@ use Exception as BaseException;
 class Exception implements HandlerInterface
 {
 
-    protected $displayErrorDetails;
+    protected $displayDetails;
 
 
     /**
      * Constructor
      *
-     * @param boolean $displayErrorDetails Set to true to display full details
+     * @param boolean $displayDetails Set to true to display full details
      */
-    public function __construct( $displayErrorDetails = false )
+    public function __construct( $displayDetails = false )
     {
-        $this->displayErrorDetails = $displayErrorDetails;
+        $this->displayDetails = $displayDetails;
     }
 
     /**
@@ -97,7 +97,7 @@ class Exception implements HandlerInterface
 
     protected function renderHtmlMessage( BaseException $exception )
     {
-        if( $this->displayErrorDetails )
+        if( $this->displayDetails )
         {
             $html = '<p>The application could not run because of the following error:</p>' .
                     '<h2>Details</h2>';
