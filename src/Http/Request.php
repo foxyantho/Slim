@@ -477,7 +477,7 @@ class Request implements RequestInterface
         return false;
     }
 
-// @TODO cookies ?
+// @TODO: cookies ?
 
 
     /*******************************************************************************
@@ -737,13 +737,13 @@ class Request implements RequestInterface
         if( empty($this->bodyParams) && !empty($this->body) )
         {
 
-            $contentType = $this->getContentType();
+            $mediaType = $this->getMediaType();
 
-            if( isset($this->bodyParsers[$contentType]) )
+            if( isset($this->bodyParsers[$mediaType]) )
             {
                 // parse content of body
 
-                $parsed = $this->bodyParsers[$contentType]($this->getBody());
+                $parsed = $this->bodyParsers[$mediaType]($this->getBody());
 
                 if( !is_null($parsed) && !is_array($parsed) )
                 {
