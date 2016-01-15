@@ -64,16 +64,16 @@ class Request implements RequestInterface
     protected $body;
 
     /**
-     * The request query params
-     * @var array
-     */
-    protected $queryParams;
-
-    /**
      * List of request body parsers (e.g., url-encoded, JSON, XML, multipart)
      * @var callable[]
      */
     protected $bodyParsers = [];
+
+    /**
+     * The request query params
+     * @var array
+     */
+    protected $queryParams;
 
     /**
      * The request body params
@@ -82,7 +82,7 @@ class Request implements RequestInterface
     protected $bodyParams;
 
     /**
-     * The request attributes (route segment names and values)
+     * The request attributes
      * @var \Slim\Collection
      */
     protected $attributes;
@@ -424,9 +424,7 @@ class Request implements RequestInterface
      */
     public function getMediaType()
     {
-        $contentType = $this->getContentType();
-
-        if( $contentType )
+        if( $contentType = $this->getContentType() )
         {
             $contentTypeParts = preg_split('/\s*[;,]\s*/', $contentType);
 
@@ -570,38 +568,6 @@ class Request implements RequestInterface
 
 
     /*******************************************************************************
-     * Query Params
-     ******************************************************************************/
-
-
-    /**
-     * Retrieve query string arguments : the deserialized query string arguments, if any.
-     *
-     * The query params might not be in sync with the URL or server
-     * params. If you need to ensure you are only getting the original
-     * values, you may need to parse the composed URL or the `QUERY_STRING`
-     * composed in the server params.
-     *
-     * @return array
-     */
-    public function getQueryParams()
-    {
-        if( $this->queryParams )
-        {
-            return $this->queryParams;
-        }
-
-        // parse query string 'x=x&y[]=y'
-
-        $queryString = urldecode($this->serverParams['QUERY_STRING']);
-
-        parse_str($queryString, $this->queryParams); // <-- set URL decodes in $queryParams
-
-        return $this->queryParams;
-    }
-
-
-    /*******************************************************************************
      * Server Params
      ******************************************************************************/
 
@@ -628,11 +594,9 @@ class Request implements RequestInterface
 
     /**
      * Retrieve attributes derived from the request.
+     * The request "attributes" may be used to pass parameters in middlewares
      *
-     * The request "attributes" may be used to allow injection
-     * of any parameters derived from the route request
-     *
-     * @return array Attributes derived from the request.
+     * @return array
      */
     public function getAttributes()
     {
@@ -695,6 +659,59 @@ class Request implements RequestInterface
 
 
     /*******************************************************************************
+     * Query Params
+     ******************************************************************************/
+
+
+
+    /**
+     * Retrieve query string arguments : the deserialized query string arguments, if any.
+     * aka $_GET
+     *
+     * @return array
+     */
+    public function getQueryParams()
+    {
+        $this->buildQueryParams();
+
+        return $this->queryParams;
+    }
+
+    /**
+     * Lazy-load: Build the query params and send them into their array
+     *
+     * @return array|null
+     * @throws RuntimeException
+     */
+    protected function buildQueryParams()
+    {
+        if( empty($this->queryParams) )
+        {
+            // parse query string 'x=x&y[]=y'
+
+            $queryString = urldecode($this->serverParams['QUERY_STRING']);
+
+            parse_str($queryString, $this->queryParams); // send URL decodes in $queryParams
+        }
+    }
+
+    /**
+     * Retrieve a query parameter provided in the request body.
+     * aka $_GET
+     * 
+     * @param  string  $key
+     * @param  mixed   $default
+     * @return mixed
+     */
+    public function query( $key, $default = null )
+    {
+        $this->buildQueryParams();
+
+        return isset($this->queryParams[$key]) ? $this->queryParams[$key] : $default;
+    }
+
+
+    /*******************************************************************************
      * Body
      ******************************************************************************/
 
@@ -717,31 +734,24 @@ class Request implements RequestInterface
      */
     protected function buildBodyParams()
     {
-        if( $this->bodyParams )
+        if( empty($this->bodyParams) && !empty($this->body) )
         {
-            return $this->bodyParams;
-        }
 
-        if( !$this->body )
-        {
-            return null;
-        }
+            $contentType = $this->getContentType();
 
-
-        $contentType = $this->getContentType();
-
-        if( isset($this->bodyParsers[$contentType]) === true )
-        {
-            // parse content of body
-
-            $parsed = $this->bodyParsers[$contentType]($this->getBody());
-
-            if( !is_null($parsed) && !is_array($parsed) )
+            if( isset($this->bodyParsers[$contentType]) )
             {
-                throw new RuntimeException('Request body media type parser return value must be an array or null');
-            }
+                // parse content of body
 
-            $this->bodyParams = $parsed;
+                $parsed = $this->bodyParsers[$contentType]($this->getBody());
+
+                if( !is_null($parsed) && !is_array($parsed) )
+                {
+                    throw new RuntimeException('Request body media type parser return value must be an array or null');
+                }
+
+                $this->bodyParams = $parsed;
+            }
         }
     }
 
@@ -768,12 +778,13 @@ class Request implements RequestInterface
 
     /**
      * Retrieve a parameter provided in the request body.
+     * aka $_POST & body post
      * 
      * @param  string  $key
      * @param  mixed   $default
      * @return mixed
      */
-    public function input( $key, $default = false )
+    public function input( $key, $default = null )
     {
         $this->buildBodyParams();
 
@@ -793,7 +804,7 @@ class Request implements RequestInterface
             $callable = $callable->bindTo($this);
         }
 
-        $this->bodyParsers[(string)$mediaType] = $callable;
+        $this->bodyParsers[$mediaType] = $callable;
     }
 
 
