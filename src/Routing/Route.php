@@ -46,7 +46,7 @@ class Route implements RouteInterface
 
     /**
      * Route handler
-     * @var handler
+     * @var mixed
      */
     protected $handler;
 
@@ -62,7 +62,7 @@ class Route implements RouteInterface
      *
      * @param string[]     $methods The route HTTP methods
      * @param string       $pattern The route pattern
-     * @param handler     $handler The route handler
+     * @param mixed        $handler The route handler
      * @param RouteGroup[] $groups The parent route groups
      */
     public function __construct( $methods, $pattern, $handler )
@@ -110,7 +110,7 @@ class Route implements RouteInterface
     /**
      * Get route handler
      *
-     * @return handler
+     * @return mixed
      */
     public function getHandler()
     {

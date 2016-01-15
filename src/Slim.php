@@ -203,90 +203,90 @@ class Slim
      * Add GET route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $callable The route callback routine
+     * @param  mixed  $handler The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function get( $pattern, $callable )
+    public function get( $pattern, $handler )
     {
-        return $this->map(['GET'], $pattern, $callable);
+        return $this->map(['GET'], $pattern, $handler);
     }
 
     /**
      * Add POST route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $callable The route callback routine
+     * @param  mixed  $handler The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function post( $pattern, $callable )
+    public function post( $pattern, $handler )
     {
-        return $this->map(['POST'], $pattern, $callable);
+        return $this->map(['POST'], $pattern, $handler);
     }
 
     /**
      * Add PUT route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $callable The route callback routine
+     * @param  mixed  $handler The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function put( $pattern, $callable )
+    public function put( $pattern, $handler )
     {
-        return $this->map(['PUT'], $pattern, $callable);
+        return $this->map(['PUT'], $pattern, $handler);
     }
 
     /**
      * Add PATCH route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $callable The route callback routine
+     * @param  mixed  $handler The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function patch( $pattern, $callable )
+    public function patch( $pattern, $handler )
     {
-        return $this->map(['PATCH'], $pattern, $callable);
+        return $this->map(['PATCH'], $pattern, $handler);
     }
 
     /**
      * Add DELETE route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $callable The route callback routine
+     * @param  mixed  $handler The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function delete( $pattern, $callable )
+    public function delete( $pattern, $handler )
     {
-        return $this->map(['DELETE'], $pattern, $callable);
+        return $this->map(['DELETE'], $pattern, $handler);
     }
 
     /**
      * Add OPTIONS route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $callable The route callback routine
+     * @param  mixed  $handler The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function options( $pattern, $callable )
+    public function options( $pattern, $handler )
     {
-        return $this->map(['OPTIONS'], $pattern, $callable);
+        return $this->map(['OPTIONS'], $pattern, $handler);
     }
 
     /**
      * Add route for any HTTP method
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $callable The route callback routine
+     * @param  mixed  $handler The route callback routine
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function any( $pattern, $callable )
+    public function any( $pattern, $handler )
     {
-        return $this->map(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], $pattern, $callable);
+        return $this->map(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], $pattern, $handler);
     }
 
     /**
@@ -294,15 +294,13 @@ class Slim
      *
      * @param  string[] $methods  Numeric array of HTTP method names
      * @param  string   $pattern  The route URI pattern
-     * @param  mixed    $callable The route callback routine
+     * @param  mixed    $handler The route callback routine
      *
      * @return RouteInterface
      */
-    public function map( array $methods, $pattern, $callable )
+    public function map( array $methods, $pattern, $handler )
     {
-        $callable = $this->resolveCallable($callable);
-
-        $route = $this->router->map($methods, $pattern, $callable);
+        $route = $this->router->map($methods, $pattern, $handler);
 
         return $route;
     }
@@ -480,8 +478,10 @@ class Slim
 
             list( $request, $response, $handler ) = $routeInfo[1]->run($request, $response);
 
-
             // return the response :
+
+            $handler = $this->resolveCallable($handler);
+
 
             $foundHandler = $this->foundHandler;
 
