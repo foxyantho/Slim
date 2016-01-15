@@ -379,6 +379,9 @@ class Slim
      */
     protected function finalize( Response $response )
     {
+        // stop PHP sending a Content-Type automatically
+        ini_set('default_mimetype', '');
+
         if( $response->isEmpty() )
         {
             return $response->withoutHeader('Content-Type')
