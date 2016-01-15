@@ -3,7 +3,7 @@
  * Slim Framework (http://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
+ * @copyright Copyright (c) 2011-2016 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -24,6 +24,16 @@ class NotAllowed implements HandlerInterface
 {
 
     /**
+     * Known handled content types
+     *
+     * @var array
+     */
+    protected $knownContentTypes = [
+        'text/html',
+        'application/json'
+    ];
+
+    /**
      * Invoke error handler
      *
      * @param  RequestInterface  $request   The most recent Request object
@@ -33,7 +43,7 @@ class NotAllowed implements HandlerInterface
     public function __invoke( Request $request, Response $response, array $methods = [] )
     {
 
-        $contentType = $this->determineContentType($request->getHeader('Accept'));
+        $contentType = $this->determineContentType($request);
 
         switch( $contentType )
         {
@@ -59,21 +69,18 @@ class NotAllowed implements HandlerInterface
     }
 
     /**
-     * Read the accept header and determine which content type we know about
-     * is wanted.
+     * Determine which content type we know about is wanted using Accept header
      *
-     * @param  string $acceptHeader Accept header from request
+     * @param RequestInterface $request
      * @return string
      */
-    protected function determineContentType( $acceptHeader )
+    private function determineContentType( Request $request)
     {
-        $list = explode(',', $acceptHeader);
+        $list = explode(',', $request->getHeader('Accept'));
 
-        $known = ['text/html', 'application/json'];
-        
         foreach( $list as $type )
         {
-            if( in_array($type, $known) )
+            if( in_array($type, $this->knownContentTypes) )
             {
                 return $type;
             }
@@ -91,7 +98,23 @@ class NotAllowed implements HandlerInterface
             $allowed_methods = implode(', ', $methods) . ' or ' . $last;
         }
 
-        return 'Method not allowed. Must be one of : ' . $allowed_methods;
+        return sprintf(
+            "<html>
+                <head>
+                    <title>Method not allowed</title>
+                    <style>
+                        body{margin:0;padding:30px;font:12px/1.5 Helvetica,Arial,Verdana,sans-serif;}
+                        h1{margin:0;font-size:48px;font-weight:normal;line-height:48px;}
+                    </style>
+                </head>
+                <body>
+                    <h1>Method not allowed</h1>
+                    <p>Method not allowed. Must be one of: <strong>%s</strong></p>
+                </body>
+            </html>",
+
+            $allowed_methods
+        );
     }
 
     protected function renderJsonMessage( array $methods = [] )

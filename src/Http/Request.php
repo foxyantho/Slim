@@ -3,7 +3,7 @@
  * Slim Framework (http://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
+ * @copyright Copyright (c) 2011-2016 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -82,8 +82,8 @@ class Request implements RequestInterface
     protected $bodyParams;
 
     /**
-     * The request attributes ( route segment names and values )
-     * @var \Slim\Http\Collection
+     * The request attributes (route segment names and values)
+     * @var \Slim\Collection
      */
     protected $attributes;
 
@@ -118,19 +118,27 @@ class Request implements RequestInterface
     /**
      * Create new HTTP request.
      *
-     * @param string            $method
-     * @param HeadersInterface  $headers
-     * @param mixed             $body
+     * @param string                $method
+     * @param HeadersInterface      $headers
+     * @param EnvironmentInterface  $serverParams
+     * @param mixed                 $body
      */
     public function __construct( $method, HeadersInterface $headers, EnvironmentInterface $serverParams, $body )
     {
-        $this->method = $this->filterMethod($method); // @FIXME:wrap exception
+        $this->method = $this->filterMethod($method); // @FIXME:wrap exception ; handle exception if not know
 
         $this->headers = $headers;
 
         $this->serverParams = $serverParams;
 
         $this->body = $body;
+
+        // protocol version
+        
+        if( isset($serverParams['SERVER_PROTOCOL']) )
+        {
+            $this->protocolVersion = str_replace('HTTP/', '', $serverParams['SERVER_PROTOCOL']);
+        }
 
         // route attributes
 
@@ -141,6 +149,7 @@ class Request implements RequestInterface
         $this->registerMediaTypeParser('application/x-www-form-urlencoded', function( $input )
         {
             parse_str(urldecode($input), $data); // if not argment#2 -> extract()
+
             return $data;
         });
 
@@ -148,10 +157,25 @@ class Request implements RequestInterface
         {
             return json_decode($input, true); // as array
         });
+/*
+        $this->registerMediaTypeParser('application/xml', function( $input )
+        {
+            $backup = libxml_disable_entity_loader(true);
+            $result = simplexml_load_string($input);
+            libxml_disable_entity_loader($backup);
 
-        /*$this->registerMediaTypeParser('application/xml', function( $input ) {
-            return simplexml_load_string($input);
-        });*/
+            return $result;
+        });
+
+        $this->registerMediaTypeParser('text/xml', function( $input )
+        {
+            $backup = libxml_disable_entity_loader(true);
+            $result = simplexml_load_string($input);
+            libxml_disable_entity_loader($backup);
+
+            return $result;
+        });
+*/
 
         // @TODO enctype="multipart/form-data" for upload form
     }
@@ -191,6 +215,14 @@ class Request implements RequestInterface
      */
     public function getMethod()
     {
+        if( empty($this->method) ) // method override via header
+        {
+            if( $customMethod = $this->getHeader('X-Http-Method-Override') )
+            {
+                $this->method = $this->filterMethod($customMethod);
+            }
+        }
+
         return $this->method;
     }
 
@@ -203,14 +235,25 @@ class Request implements RequestInterface
      */
     protected function filterMethod( $method )
     {
-        // @TODO: handler exception if not know
+        if( !is_string($method) )
+        {
+            throw new InvalidArgumentException(sprintf(
+                'Unsupported HTTP method ; must be a string, received %s',
+                ( is_object($method) ? get_class($method) : gettype($method) )
+            ));
+        }
+
 
         $method = strtoupper($method);
 
         if( !in_array($method, $this->validMethods) )
         {
-            throw new InvalidArgumentException('Unsupported HTTP method : "' . $method . '"');
+            throw new InvalidArgumentException(sprintf(
+                'Unsupported HTTP method "%s" provided',
+                $method
+            ));
         }
+
 
         return $method;
     }
@@ -668,7 +711,8 @@ class Request implements RequestInterface
 
     /**
      * Lazy-load: Build the body params and send them into their array
-     * 
+     *
+     * @return array|null
      * @throws RuntimeException
      */
     protected function buildBodyParams()

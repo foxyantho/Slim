@@ -4,7 +4,7 @@
  * Slim - a micro PHP 5 framework
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
+ * @copyright Copyright (c) 2011-2016 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -117,6 +117,9 @@ class Router implements RouterInterface
         {
             throw new InvalidArgumentException('Route uri must be a string');
         }
+
+        // According to RFC methods are defined in uppercase (See RFC 7231)
+        $methods = array_map('strtoupper', $methods);
 
         // Add route
 

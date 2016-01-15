@@ -3,7 +3,7 @@
  * Slim Framework (http://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
+ * @copyright Copyright (c) 2011-2016 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -23,6 +23,16 @@ class NotFound implements HandlerInterface
 {
 
     /**
+     * Known handled content types
+     *
+     * @var array
+     */
+    protected $knownContentTypes = [
+        'text/html',
+        'application/json'
+    ];
+
+    /**
      * Invoke not found handler
      *
      * @param  RequestInterface  $request
@@ -31,8 +41,7 @@ class NotFound implements HandlerInterface
      */
     public function __invoke( Request $request, Response $response )
     {
-
-        $contentType = $this->determineContentType($request->getHeader('Accept'));
+        $contentType = $this->determineContentType($request);
 
         switch( $contentType )
         {
@@ -56,21 +65,18 @@ class NotFound implements HandlerInterface
     }
 
     /**
-     * Read the accept header and determine which content type we know about
-     * is wanted.
+     * Determine which content type we know about is wanted using Accept header
      *
-     * @param  string $acceptHeader Accept header from request
+     * @param RequestInterface $request
      * @return string
      */
-    protected function determineContentType( $acceptHeader )
+    private function determineContentType( Request $request)
     {
-        $list = explode(',', $acceptHeader);
+        $list = explode(',', $request->getHeader('Accept'));
 
-        $known = ['text/html', 'application/json'];
-        
         foreach( $list as $type )
         {
-            if( in_array($type, $known) )
+            if( in_array($type, $this->knownContentTypes) )
             {
                 return $type;
             }

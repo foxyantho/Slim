@@ -3,7 +3,7 @@
  * Slim Framework (http://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
+ * @copyright Copyright (c) 2011-2016 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -26,6 +26,15 @@ class Exception implements HandlerInterface
 
     protected $displayDetails;
 
+    /**
+     * Known handled content types
+     *
+     * @var array
+     */
+    protected $knownContentTypes = [
+        'text/html',
+        'application/json'
+    ];
 
     /**
      * Constructor
@@ -48,7 +57,7 @@ class Exception implements HandlerInterface
     public function __invoke( Request $request, Response $response, BaseException $exception = null )
     {
 
-        $contentType = $this->determineContentType($request->getHeader('Accept'));
+        $contentType = $this->determineContentType($request);
 
         switch( $contentType )
         {
@@ -72,21 +81,18 @@ class Exception implements HandlerInterface
     }
 
     /**
-     * Read the accept header and determine which content type we know about
-     * is wanted.
+     * Determine which content type we know about is wanted using Accept header
      *
-     * @param  string $acceptHeader Accept header from request
+     * @param RequestInterface $request
      * @return string
      */
-    protected function determineContentType( $acceptHeader )
+    private function determineContentType( Request $request)
     {
-        $list = explode(',', $acceptHeader);
+        $list = explode(',', $request->getHeader('Accept'));
 
-        $known = ['text/html', 'application/json'];
-        
         foreach( $list as $type )
         {
-            if( in_array($type, $known) )
+            if( in_array($type, $this->knownContentTypes) )
             {
                 return $type;
             }
@@ -177,6 +183,12 @@ class Exception implements HandlerInterface
         return $html;
     }
 
+    /**
+     * Render JSON error
+     *
+     * @param  Exception $exception
+     * @return string
+     */
     protected function renderJsonMessage( BaseException $exception )
     {
         return json_encode([

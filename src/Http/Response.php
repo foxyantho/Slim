@@ -3,7 +3,7 @@
  * Slim Framework (http://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
+ * @copyright Copyright (c) 2011-2016 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -13,6 +13,7 @@ use Slim\Http\Interfaces\ResponseInterface;
 use Slim\Http\Interfaces\HeadersInterface;
 
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Response
@@ -114,6 +115,7 @@ class Response implements ResponseInterface
         428 => 'Precondition Required',
         429 => 'Too Many Requests',
         431 => 'Request Header Fields Too Large',
+        451 => 'Unavailable For Legal Reasons',
         //Server Error 5xx
         500 => 'Internal Server Error',
         501 => 'Not Implemented',
@@ -202,17 +204,44 @@ class Response implements ResponseInterface
      * @throws \InvalidArgumentException For invalid status code arguments.
      */
     public function status( $code, $reasonPhrase = '' )
-    {        
+    {
+        $code = $this->filterStatus($code);
+
+
         if( !is_string($reasonPhrase) )
         {
             throw new InvalidArgumentException('ReasonPhrase must be a string');
         }
 
-        $this->status = $this->filterStatus($code); //@FIXME: wrap into try/catch
+        if( $reasonPhrase === '' && isset(static::$messages[$code]) )
+        {
+            $reasonPhrase = static::$messages[$code]; // try default message if found
+        }
+
+
+        $this->status = $code; //@FIXME: wrap into try/catch
 
         $this->reasonPhrase = $reasonPhrase;
 
+
         return $this;
+    }
+
+    /**
+     * Filter HTTP status code.
+     *
+     * @param  int $status HTTP status code.
+     * @return int
+     * @throws \InvalidArgumentException If an invalid HTTP status code is provided.
+     */
+    protected function filterStatus( $code )
+    {
+        if( !is_integer($code) || $code < 100 || $code > 599 )
+        {
+            throw new InvalidArgumentException('Invalid HTTP status code');
+        }
+
+        return $code;
     }
 
     /**
@@ -235,24 +264,12 @@ class Response implements ResponseInterface
             return $this->reasonPhrase;
         }
 
-        return static::$messages[$this->status];
-    }
-
-    /**
-     * Filter HTTP status code.
-     *
-     * @param  int $status HTTP status code.
-     * @return int
-     * @throws \InvalidArgumentException If invalid HTTP status code.
-     */
-    protected function filterStatus( $code )
-    {
-        if( !is_integer($code) || !isset(static::$messages[$code]) )
+        if( isset(static::$messages[$this->status]) )
         {
-            throw new InvalidArgumentException('Invalid HTTP status code');
+            return static::$messages[$this->status];
         }
 
-        return $code;
+        return '';
     }
 
 
@@ -433,7 +450,15 @@ class Response implements ResponseInterface
      */
     public function json( $data, $status = 200, $encodingOptions = 0 )
     {
-        $this->write(json_encode($data, $encodingOptions));
+        $this->write($json = json_encode($data, $encodingOptions));
+
+        // Ensure that the json encoding passed successfully
+
+        if( $json === false )
+        {
+            throw new RuntimeException(json_last_error_msg(), json_last_error());
+        }
+
 
         return $this->status($status)
                     ->header('Content-Type', 'application/json;charset=utf-8');

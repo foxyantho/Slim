@@ -3,7 +3,7 @@
  * Slim Framework (http://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
+ * @copyright Copyright (c) 2011-2016 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -88,9 +88,12 @@ class Slim
     protected static $instance;
 
 
-
+    /**
+     * Create new application
+     */
     public function __construct( array $userSettings = [] )
     {
+
         // settings
 
         $this->settings = array_merge(static::getDefaultSettings(), $userSettings);
@@ -331,49 +334,33 @@ class Slim
 
     /**
      * Run application
+     *
      * This method traverses the application middleware stack and then sends the
      * resultant Response object to the HTTP client.
-     * 
+     *
      * @param bool|false $silent
      * @return ResponseInterface
+     *
+     * @throws Exception
+     * @throws MethodNotAllowedException
+     * @throws NotFoundException
      */
     public function run( $silent = false )
     {
+       // traverse middleware stack ; process the request
+
         try
         {
-            // Traverse middleware stack
-
             $response = $this->callMiddlewareStack($this->request, $this->response);
         }
-
-        catch( NotFoundException $e )
+        catch( Exception $exception )
         {
-            $handler = $this->notFoundHandler;
-
-            $response = $handler($this->request, $e->getResponse());
-        }
-
-        catch( MethodNotAllowedException $e )
-        {
-            $handler = $this->notAllowedHandler;
-
-            $response =  $handler($this->request, $e->getResponse(), $e->getAllowedMethods());
-        }
-
-        catch( SlimException $e )
-        {
-            $response = $e->getResponse();
-        }
-
-        catch( Exception $e )
-        {
-            $handler = $this->exceptionHandler;
-
-            $response = $handler($this->request, $this->response, $e);
+            $response = $this->handleException($this->request, $this->response, $exception);
         }
 
 
         $response = $this->finalize($response);
+
 
         if( !$silent )
         {
@@ -460,6 +447,8 @@ class Slim
      * @param  RequestInterface  $request  The most recent Request object
      * @param  ResponseInterface $response The most recent Response object
      * @return ResponseInterface
+     * @throws MethodNotAllowedException
+     * @throws NotFoundException
      */
     public function __invoke( Request $request, Response $response )
     {
@@ -498,13 +487,53 @@ class Slim
 
         if( $routeInfo[0] === Router::NOT_FOUND )
         {
-            throw new NotFoundException($response);
+            throw new NotFoundException($request, $response);
         }
 
         if( $routeInfo[0] === Router::METHOD_NOT_ALLOWED )
         {
-            throw new MethodNotAllowedException($response, $routeInfo[1]);
+            throw new MethodNotAllowedException($request, $response, $routeInfo[1]);
         }
+    }
+
+    /**
+     * Call relevant handler from the Container if needed. If it doesn't exist, then just re-throw.
+     *
+     * @param  Exception $e
+     * @param  ServerRequestInterface $request
+     * @param  ResponseInterface $response
+     *
+     * @return ResponseInterface
+     * @throws Exception if a handler is needed and not found
+     */
+    protected function handleException( Request $request, Response $response, Exception $e )
+    {
+        if( $e instanceof NotFoundException )
+        {
+            $handler = $this->notFoundHandler;
+
+            return $handler($e->getRequest(), $e->getResponse());
+        }
+
+        elseif( $e instanceof MethodNotAllowedException )
+        {
+            $handler = $this->notAllowedHandler;
+
+            return $handler($e->getRequest(), $e->getResponse(), $e->getAllowedMethods());
+        }
+
+        elseif( $e instanceof SlimException )
+        {
+            // this is a Stop exception and contains the 
+
+            return $e->getResponse();
+        }
+
+        // other exception, use $request and $response params
+
+        $handler = $this->exceptionHandler;
+
+        return $handler($request, $response, $e);
     }
 
 

@@ -3,7 +3,7 @@
  * Slim Framework (http://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
+ * @copyright Copyright (c) 2011-2016 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -49,11 +49,12 @@ trait MiddlewareAwareTrait
      *                           1. A Request object
      *                           2. A Response object
      *                           3. A "next" middleware callable
-     * @return self
-     * @throws RuntimeException if middleware is added while the stack is dequeuing
-     * @throws UnexpectedValueException If the middleware doesn't return an instance of \Psr\Http\Message\Response
+     * @return static
+     *
+     * @throws RuntimeException         If middleware is added while the stack is dequeuing
+     * @throws UnexpectedValueException If the middleware doesn't return a Slim\Http\Interfaces\ResponseInterface
      */
-    public function add( callable $callable )
+    protected function add( callable $callable )
     {
         if( $this->middlewareLock )
         {
