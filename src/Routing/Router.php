@@ -105,17 +105,17 @@ class Router implements RouterInterface
      * Add route
      *
      * @param  string[]        $methods
-     * @param  string          $uri
+     * @param  string          $pattern
      * @param  callable|string $handler
      * 
      * @return \Slim\Interfaces\RouteInterface
      * @throws InvalidArgumentException if the route pattern isn't a string
      */
-    public function map( array $methods, $uri, $handler )
+    public function map( array $methods, $pattern, $handler )
     {
-        if( !is_string($uri) )
+        if( !is_string($pattern) )
         {
-            throw new InvalidArgumentException('Route uri must be a string');
+            throw new InvalidArgumentException('Route pattern must be a string');
         }
 
         // According to RFC methods are defined in uppercase (See RFC 7231)
@@ -123,7 +123,7 @@ class Router implements RouterInterface
 
         // Add route
 
-        $route = $this->newRoute($methods, $uri, $handler);
+        $route = $this->newRoute($methods, $pattern, $handler);
 
         $this->routes[] = $route;
 
@@ -135,14 +135,14 @@ class Router implements RouterInterface
      * Create a new Route object.
      *
      * @param  array  $methods
-     * @param  string $uri
+     * @param  string $pattern
      * @param  mixed  $handler
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    protected function newRoute( array $methods, $uri, $handler )
+    protected function newRoute( array $methods, $pattern, $handler )
     {
-        return ( new Route($methods, $uri, $handler) );
+        return ( new Route($methods, $pattern, $handler) );
     }
 
     /**
@@ -174,7 +174,7 @@ class Router implements RouterInterface
 
                 [$this, 'matchesCallback'],
 
-                $route->getUri()
+                $route->getPattern()
             );
 
             //    /user/(?P<name>[^/]+)/(?P<id>[0-9]+)
@@ -318,7 +318,7 @@ class Router implements RouterInterface
         {
             if( $name = $route->getName() )
             {
-                $this->lookupTable[$name] = $route->getUri();
+                $this->lookupTable[$name] = $route->getPattern();
             }
         }
     }
