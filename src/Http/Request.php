@@ -820,20 +820,5 @@ class Request implements RequestInterface
         return $params;
     }
 
-    /**
-     * Get the client IP address. //@TODO:getip
-     *
-     * @return string|null IP address or null if none found.
-     */
-    public function getIp()
-    {
-        if( $this->hasHeader('X-Forwarded-For') )
-        {
-            return trim(current(explode(',', $this->getHeader('X-Forwarded-For'))));
-        }
-
-        return isset($this->serverParams['REMOTE_ADDR']) ? $this->serverParams['REMOTE_ADDR'] : null;
-    }
-
 
 }
