@@ -23,14 +23,14 @@ class Found implements HandlerInterface
      * Invoke a route callable with request, response and all route parameters
      * as individual arguments.
      *
-     * @param array|callable         $callable
      * @param ServerRequestInterface $request
      * @param ResponseInterface      $response
-     * @param array                  $routeArguments
+     * @param callable               $callable
+     * @param array                  $parameters Route params
      *
      * @return mixed
      */
-    public function __invoke( Request $request, Response $response, $handler = null )
+    public function __invoke( Request $request, Response $response, $handler = null, array $parameters = [] )
     {
         // invoke route callable
 
@@ -38,7 +38,7 @@ class Found implements HandlerInterface
         {
             ob_start();
 
-            $newResponse = call_user_func_array($handler, [ $request, $response ] + $request->getAttributes());
+            $newResponse = call_user_func_array($handler, [ $request, $response ] + $parameters);
 
             // @TODO: prefering using return response
             $output = ob_get_clean();

@@ -469,10 +469,7 @@ class Slim
             // URL decode the named arguments from the router
             // aka dispatchRouterAndPrepareRoute
 
-            $attributes = array_map('urldecode', $routeInfo[2]);
-
-            $request->attributes($attributes);
-
+            $arguments = array_map('urldecode', $routeInfo[2]);
 
             // traverse route middlewares :
 
@@ -485,7 +482,7 @@ class Slim
 
             $foundHandler = $this->foundHandler;
 
-            return $foundHandler($request, $response, $handler);
+            return $foundHandler($request, $response, $handler, $arguments);
         }
 
         if( $routeInfo[0] === Router::NOT_FOUND )
