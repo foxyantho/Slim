@@ -189,7 +189,7 @@ class Request implements RequestInterface
     {
         if( empty($this->method) ) // method override via header
         {
-            if( $customMethod = $this->getHeader('X-Http-Method-Override') )
+            if( $customMethod = $this->getHeader('x.http.method.override') )
             {
                 $this->method = $this->filterMethod($customMethod);
             }
@@ -385,7 +385,7 @@ class Request implements RequestInterface
      */
     public function getContentType()
     {
-        return $this->getHeader('Content-Type');
+        return $this->getHeader('content.type');
     }
 
     /**
@@ -441,7 +441,7 @@ class Request implements RequestInterface
      */
     public function getContentLength()
     {
-        if( $result = $this->getHeader('Content-Length') )
+        if( $result = $this->getHeader('content.length') )
         {
             return (int) $result;
         }

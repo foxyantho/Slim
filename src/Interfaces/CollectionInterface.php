@@ -17,6 +17,9 @@ use IteratorAggregate;
 interface CollectionInterface extends ArrayAccess, Countable, IteratorAggregate
 {
 
+    public function normalizeKey( $key );
+
+
     public function has( $key );
 
     public function get( $key );

@@ -76,7 +76,7 @@ class Exception implements HandlerInterface
 
 
         return $response->status(500)
-                        ->header('Content-Type', $contentType)
+                        ->header('content.type', $contentType)
                         ->write($output);
     }
 
@@ -88,7 +88,7 @@ class Exception implements HandlerInterface
      */
     private function determineContentType( Request $request)
     {
-        $list = explode(',', $request->getHeader('Accept'));
+        $list = explode(',', $request->getHeader('accept'));
 
         foreach( $list as $type )
         {

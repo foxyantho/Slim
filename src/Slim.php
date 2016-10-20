@@ -414,15 +414,15 @@ class Slim
 
         if( $response->isEmpty() )
         {
-            return $response->withoutHeader('Content-Type')
-                            ->withoutHeader('Content-Length');
+            return $response->withoutHeader('content.type')
+                            ->withoutHeader('content.length');
         }
 
         // it has body :
 
         if( ( $size = $response->getBodyLength() ) > 0 )
         {
-            $response->header('Content-Length', (string) $size);
+            $response->header('content.length', (string) $size);
         }
 
 
@@ -455,6 +455,8 @@ class Slim
 
                 foreach( $response->getHeaders() as $name => $value )
                 {
+                    $name = str_replace('.', '-', ucwords($name, '.'));
+
                     header(sprintf('%s: %s', $name, $value), false); // don't replace existing
                 }
             }

@@ -60,7 +60,7 @@ class NotFound implements HandlerInterface
 
 
         return $response->status(404)
-                        ->header('Content-Type', $contentType)
+                        ->header('content.type', $contentType)
                         ->write($output);
     }
 
@@ -72,7 +72,7 @@ class NotFound implements HandlerInterface
      */
     private function determineContentType( Request $request)
     {
-        $list = explode(',', $request->getHeader('Accept'));
+        $list = explode(',', $request->getHeader('accept'));
 
         foreach( $list as $type )
         {

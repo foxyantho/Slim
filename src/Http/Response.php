@@ -436,7 +436,7 @@ class Response implements ResponseInterface
      */
     public function redirect( $url, $status = 302 )
     {
-        return $this->status($status)->header('Location', (string)$url);
+        return $this->status($status)->header('location', (string)$url);
     }
 
     /**
@@ -461,7 +461,7 @@ class Response implements ResponseInterface
 
 
         return $this->status($status)
-                    ->header('Content-Type', 'application/json;charset=utf-8');
+                    ->header('content.type', 'application/json;charset=utf-8');
     }
 
     /**

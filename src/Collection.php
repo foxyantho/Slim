@@ -49,7 +49,7 @@ class Collection implements CollectionInterface
      * @param  mixed $key
      * @return mixed
      */
-    protected function normalizeKey( $key )
+    public function normalizeKey( $key )
     {
         return $key;
     }
