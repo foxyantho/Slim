@@ -583,7 +583,7 @@ class Request implements RequestInterface
      * @param  mixed  $default
      * @return mixed
      */
-    public function getAttribute( $name, $default = false )
+    public function getAttribute( $name, $default = null )
     {
         return $this->attributes->get($name, $default);
     }
