@@ -116,9 +116,9 @@ class Request implements RequestInterface
 
         // protocol version
         
-        if( isset($serverParams['SERVER_PROTOCOL']) )
+        if( isset($serverParams['server.protocol']) )
         {
-            $this->protocolVersion = str_replace('HTTP/', '', $serverParams['SERVER_PROTOCOL']);
+            $this->protocolVersion = str_replace('HTTP/', '', $serverParams['server.protocol']);
         }
 
         // route attributes
@@ -468,17 +468,17 @@ class Request implements RequestInterface
     {
         // Authority: Host
 
-        if( $this->serverParams['HTTP_X_FORWARDED_HOST'] ) // proxy
+        if( $this->serverParams['http.x.forwarded.host'] ) // proxy
         {
-            return trim(current(explode(',', $this->serverParams['HTTP_X_FORWARDED_HOST'])));
+            return trim(current(explode(',', $this->serverParams['http.x.forwarded_host'])));
         }
         
-        if( $this->serverParams['HTTP_HOST'] ) // http header
+        if( $this->serverParams['http.host'] ) // http header
         {
-            return $this->serverParams['HTTP_HOST'];
+            return $this->serverParams['http.host'];
         }
         
-        return $this->serverParams['SERVER_NAME'];
+        return $this->serverParams['server.name'];
     }
 
     /**
@@ -489,7 +489,7 @@ class Request implements RequestInterface
      */
     public function getUriBasePath()
     {
-        $basePath = dirname($this->serverParams['SCRIPT_NAME']); // "/"index.php, "/folder/"index.php
+        $basePath = dirname($this->serverParams['script.name']); // "/"index.php, "/folder/"index.php
 
         return $basePath !== '.' ?
 
@@ -504,9 +504,9 @@ class Request implements RequestInterface
      */
     public function getUriPath()
     {
-        $requestUri = urldecode($this->serverParams['REQUEST_URI']);
+        $requestUri = urldecode($this->serverParams['request.uri']);
 
-        $requestScriptName = $this->serverParams['SCRIPT_NAME']; // with base folder
+        $requestScriptName = $this->serverParams['script.name']; // with base folder
 
 
         if( strpos($requestUri, $requestScriptName) === 0 )
@@ -661,7 +661,7 @@ class Request implements RequestInterface
         {
             // parse query string 'x=x&y[]=y'
 
-            $queryString = urldecode($this->serverParams['QUERY_STRING']);
+            $queryString = urldecode($this->serverParams['query.string']);
 
             parse_str($queryString, $this->queryParams); // send URL decodes in $queryParams
         }

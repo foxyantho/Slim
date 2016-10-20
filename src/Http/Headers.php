@@ -29,10 +29,5 @@ use Slim\Http\Interfaces\EnvironmentInterface;
 class Headers extends Collection implements HeadersInterface
 {
 
-    public function normalizeKey( $key )
-    {
-        return strtolower(str_replace('-', '.', $key));
-    }
-
 
 }

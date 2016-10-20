@@ -22,5 +22,44 @@ use Slim\Http\Interfaces\EnvironmentInterface;
 class Environment extends Collection implements EnvironmentInterface
 {
 
+    /**
+     * Normalize key in a unified way "key.subkey"
+     * 
+     * @param  mixed $key
+     * @return mixed
+     */
+    public function normalizeKey( $key )
+    {
+        return strtolower(str_replace('_', '.', $key));
+    }
+
+
+    /**
+     * Get all header extracted from $_SERVER[HTTP_]
+     * As opposed to getallheaders Apache function
+     * 
+     * @return array
+     */
+    public function getAllHeaders()
+    {
+        $special = [
+            'content.type', 'content.length',
+            'auth.type', 'php.auth.user', 'php.auth.pw', 'php.auth.digest'
+        ];
+
+
+        $data = [];
+
+        foreach( $this->all() as $key => $value )
+        {
+            if( strpos($key, 'http.') === 0 || in_array($key, $special) )
+            {
+                $data[substr($key, 5)] =  $value;
+            }
+        }
+
+        return $data;
+    }
+
 
 }

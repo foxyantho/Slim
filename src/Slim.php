@@ -113,9 +113,9 @@ class Slim
 
         // request
 
-        $method = $this->environment['REQUEST_METHOD'];
+        $method = $this->environment['request.method'];
 
-        $request_headers = new HttpHeaders( getallheaders() );
+        $request_headers = new HttpHeaders( $this->environment->getAllHeaders() ); // getallheaders
 
         $body = file_get_contents('php://input'); // stream_get_contents(fopen('php://input', 'r'));
 
@@ -126,7 +126,7 @@ class Slim
 
         $protocolVersion = $this->settings['httpVersion'];
 
-        $response_headers = new HttpHeaders(['Content-Type' => 'text/html']);
+        $response_headers = new HttpHeaders(['content.type' => 'text/html']);
 
         $this->response = ( new HttpResponse(200, $response_headers) )->protocolVersion($protocolVersion);
 
@@ -455,7 +455,7 @@ class Slim
 
                 foreach( $response->getHeaders() as $name => $value )
                 {
-                    $name = str_replace('.', '-', ucwords($name, '.'));
+                    $name = str_replace('.', '-', ucwords($name, '.')); // convert header to right format
 
                     header(sprintf('%s: %s', $name, $value), false); // don't replace existing
                 }
