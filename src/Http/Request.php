@@ -97,25 +97,6 @@ class Request implements RequestInterface
 
 
     /**
-     * Create new HTTP request with data extracted from the Environment
-     *
-     * @param  Environment $environment
-     * @return self
-     */
-    /*public static function createFromEnvironment( EnvironmentInterface $environment )
-    {
-        $method = $environment['REQUEST_METHOD'];
-
-        $headers = Headers::createFromEnvironment($environment);
-
-        $serverParams = $environment->all();
-
-        $body = file_get_contents('php://input');
-
-        return new static($method, $uri, $headers, $cookies, $serverParams, $body);
-    }*/
-
-    /**
      * Create new HTTP request.
      *
      * @param string                $method
