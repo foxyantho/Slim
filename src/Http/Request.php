@@ -158,16 +158,7 @@ class Request implements RequestInterface
             return json_decode($input, true); // as array
         });
 /*
-        $this->registerMediaTypeParser('application/xml', function( $input )
-        {
-            $backup = libxml_disable_entity_loader(true);
-            $result = simplexml_load_string($input);
-            libxml_disable_entity_loader($backup);
-
-            return $result;
-        });
-
-        $this->registerMediaTypeParser('text/xml', function( $input )
+        $this->registerMediaTypeParser(['text/xml', 'application/xml'], function( $input )
         {
             $backup = libxml_disable_entity_loader(true);
             $result = simplexml_load_string($input);
@@ -632,7 +623,7 @@ class Request implements RequestInterface
     }
 
     /**
-     * Aallows setting all new derived request attributes
+     * Allows setting all new derived request attributes
      *
      * @param  array $attributes New attributes
      * @return self
@@ -794,7 +785,7 @@ class Request implements RequestInterface
     /**
      * Register media type parser
      *
-     * @param string   $mediaType A HTTP media type (excluding content-type params)
+     * @param string|array   $mediaType A HTTP media type (excluding content-type params)
      * @param callable $callable  A callable that returns parsed contents for media type
      */
     public function registerMediaTypeParser( $mediaType, callable $callable )
@@ -804,7 +795,17 @@ class Request implements RequestInterface
             $callable = $callable->bindTo($this);
         }
 
-        $this->bodyParsers[$mediaType] = $callable;
+        if( !is_array($mediaType) )
+        {
+            $mediaType = [ $mediaType ]; // for multiple mimetype
+        }
+
+        // add to the body parsers :
+
+        foreach( $mediaType as $type )
+        {
+            $this->bodyParsers[$type] = $callable;
+        }
     }
 
 
