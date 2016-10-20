@@ -36,15 +36,16 @@ trait ResolveCallableTrait
      */
     protected function resolveCallable( $callable )
     {
+
+        if( $callable instanceof Closure )
+        {
+            return $callable->bindTo($this);
+        }
+
         if( is_callable($callable) )
         {
             return $callable;
         }
-
-        /*if( $callable instanceof Closure )
-        {
-            return $callable->bindTo($this);
-        }*/
 
         if( is_string($callable) && strpos($callable, '@') )
         {
