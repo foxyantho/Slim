@@ -50,37 +50,11 @@ class Router implements RouterInterface
     protected $lookupTable;
 
     /**
-     * default conditions applied to all route instances
-     * @var array
-     */
-    protected static $defaultConditions = [];
-
-    /**
      * URI base path "//example.com/folder/" used in urlfor()
      * @var string
      */
     protected $uriRoot;
 
-
-    /**
-     * Set default route conditions for all instances
-     * 
-     * @param  array $defaultConditions
-     */
-    public static function defaultConditions( array $defaultConditions )
-    {
-        static::$defaultConditions = $defaultConditions;
-    }
-
-    /**
-     * Get default route conditions for all instances
-     * 
-     * @return array
-     */
-    public static function getDefaultConditions()
-    {
-        return static::$defaultConditions;
-    }
 
     /**
      * Set the URI base path used in urlfor()
@@ -225,14 +199,7 @@ class Router implements RouterInterface
 
         if( isset($m[2]) )
         {
-            if( isset(static::$defaultConditions[$m[2]]) ) // TODO: change it !
-            {
-                $condition = static::$defaultConditions[$m[2]]; // {id:"id"}
-            }
-            else
-            {
-                $condition = $m[2]; // {id:"[0-9]+"}
-            }
+            $condition = $m[2]; // if regex: {id: "[0-9]+" }
         }
 
         return sprintf('(?P<%s>%s)', $m[1], $condition); 
