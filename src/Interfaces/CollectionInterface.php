@@ -17,23 +17,23 @@ use IteratorAggregate;
 interface CollectionInterface extends ArrayAccess, Countable, IteratorAggregate
 {
 
-    public function normalizeKey( $key );
+    function normalizeKey( $key );
 
 
-    public function has( $key );
+    function has( $key );
 
-    public function get( $key );
+    function get( $key );
 
-    public function set( $key, $value );
+    function set( $key, $value );
 
-    public function remove( $key );
+    function remove( $key );
 
 
-    public function all();
+    function all();
 
-    public function add( array $data );
+    function add( array $data );
 
-    public function clear();
+    function clear();
 
 
 }
