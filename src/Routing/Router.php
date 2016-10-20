@@ -225,7 +225,7 @@ class Router implements RouterInterface
 
         if( isset($m[2]) )
         {
-            if( isset(static::$defaultConditions[$m[2]]) )
+            if( isset(static::$defaultConditions[$m[2]]) ) // TODO: change it !
             {
                 $condition = static::$defaultConditions[$m[2]]; // {id:"id"}
             }
