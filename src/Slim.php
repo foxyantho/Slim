@@ -76,6 +76,13 @@ class Slim
     protected $router;
 
 
+    /**
+     * App's container, in case of need
+     * @var array
+     */
+    protected $container = [];
+
+
     protected $foundHandler;
 
     protected $notFoundHandler;
@@ -191,6 +198,31 @@ class Slim
     public static function getInstance()
     {
         return static::$instance;
+    }
+
+    /**
+     * Container's get
+     * @param  mixed $key
+     * @return mixed|null
+     */
+    public function __get( $key )
+    {
+        if( array_key_exists($key, $this->container) )
+        {
+            return $this->container[$key];
+        }
+
+        return null;
+    }
+
+    /**
+     * Container's set
+     * @param mixed $key
+     * @param mixed $value
+     */
+    public function __set( $key, $value )
+    {
+        $this->container[$key] = $value;
     }
 
 
@@ -388,7 +420,7 @@ class Slim
 
         // it has body :
 
-        if( $size = $response->getBodyLength() > 0 )
+        if( ( $size = $response->getBodyLength() ) > 0 )
         {
             $response->header('Content-Length', (string) $size);
         }
