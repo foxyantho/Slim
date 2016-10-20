@@ -43,6 +43,17 @@ class Collection implements CollectionInterface
      * Collection interface
      *******************************************************************************/
 
+    /**
+     * Normalize key 
+     * 
+     * @param  mixed $key
+     * @return mixed
+     */
+    protected function normalizeKey( $key )
+    {
+        return $key;
+    }
+
 
     /**
      * Set collection item
@@ -52,7 +63,7 @@ class Collection implements CollectionInterface
      */
     public function set( $key, $value )
     {
-        $this->data[$key] = $value;
+        $this->data[$this->normalizeKey($key)] = $value;
     }
 
     public function __set($key, $value )
@@ -70,7 +81,7 @@ class Collection implements CollectionInterface
      */
     public function get( $key, $default = null )
     {
-        return $this->has($key) ? $this->data[$key] : $default;
+        return $this->has($key) ? $this->data[$this->normalizeKey($key)] : $default;
     }
 
     public function __get( $key )
@@ -87,7 +98,7 @@ class Collection implements CollectionInterface
      */
     public function has( $key )
     {
-        return isset($this->data[$key]);
+        return isset($this->data[$this->normalizeKey($key)]);
     }
 
     public function __isset( $key )
