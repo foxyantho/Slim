@@ -239,7 +239,7 @@ class Router implements RouterInterface
 
         $url = preg_replace_callback(
 
-            '#{([^}]+)}#',
+            '~{([^}]+)}~',
 
             function( $match ) use ( $data )
             {
