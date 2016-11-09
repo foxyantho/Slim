@@ -389,13 +389,11 @@ class Slim
         }
 
 
+        // send response
+
         $response = $this->finalize($response);
 
-
-        if( !$silent )
-        {
-            $this->respond($response);
-        }
+        $this->respond($response);
 
 
         return $response;
@@ -436,40 +434,32 @@ class Slim
      */
     protected function respond( Response $response )
     {
-        static $responded = false;
+        // send response
 
-        if( !$responded )
+        if( !headers_sent() )
         {
-            // send response
+            header(sprintf(
+                'HTTP/%s %s %s',
+                $response->getProtocolVersion(),
+                $response->getStatusCode(),
+                $response->getReasonPhrase()
+            ));
 
-            if( !headers_sent() )
+            // headers
+
+            foreach( $response->getHeaders() as $name => $value )
             {
-                header(sprintf(
-                    'HTTP/%s %s %s',
-                    $response->getProtocolVersion(),
-                    $response->getStatusCode(),
-                    $response->getReasonPhrase()
-                ));
+                $name = str_replace('.', '-', ucwords($name, '.')); // convert header to right format
 
-                // headers
-
-                foreach( $response->getHeaders() as $name => $value )
-                {
-                    $name = str_replace('.', '-', ucwords($name, '.')); // convert header to right format
-
-                    header(sprintf('%s: %s', $name, $value), false); // don't replace existing
-                }
+                header(sprintf('%s: %s', $name, $value), false); // don't replace existing
             }
+        }
 
-            // Body
+        // Body
 
-            if( !$response->isEmpty() )
-            {
-                echo $response->getBody();
-            }
-
-
-            $responded = true;
+        if( !$response->isEmpty() )
+        {
+            echo $response->getBody();
         }
     }
 
