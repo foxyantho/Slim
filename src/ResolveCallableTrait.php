@@ -39,7 +39,12 @@ trait ResolveCallableTrait
 
         if( $callable instanceof Closure )
         {
-            return $callable->bindTo($this);
+            // if ( isset($this->container) )
+            // {
+            //     return $callable->bindTo($this->container);
+            // }
+
+            // return $callable->bindTo($this);
         }
 
         if( is_callable($callable) )
