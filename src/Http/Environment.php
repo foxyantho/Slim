@@ -54,7 +54,7 @@ class Environment extends Collection implements EnvironmentInterface
         {
             if( strpos($key, 'http.') === 0 || in_array($key, $special) )
             {
-                $data[substr($key, 5)] =  $value;
+                $data[substr($key, 5)] =  $value; // strip 'http.'
             }
         }
 
