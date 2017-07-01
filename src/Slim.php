@@ -393,7 +393,10 @@ class Slim
 
         $response = $this->finalize($response);
 
-        $this->respond($response);
+        if( !$silent )
+        {
+            $this->respond($response);
+        }
 
 
         return $response;
