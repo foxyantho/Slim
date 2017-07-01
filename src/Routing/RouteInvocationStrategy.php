@@ -11,7 +11,7 @@ use Slim\Routing\Interfaces\RouteInvocationStrategyInterface;
 class RouteInvocationStrategy implements RouteInvocationStrategyInterface
 {
     /**
-     * Invoke a route callable with request, response, and all route parameters as an array of arguments.
+     * Invoke a route callable with request, response, and all route parameters as an array of arguments. ( old FoundHandler )
      *
      * @param callable $callable
      * @param Request  $request
@@ -22,10 +22,16 @@ class RouteInvocationStrategy implements RouteInvocationStrategyInterface
     public function __invoke( Request $request, Response $response, callable $callable, array $routeArguments )
     {
 
-        $output = call_user_func_array($callable, [ $request, $response ] + $routeArguments);
+        $newResponse = call_user_func_array($callable, [ $request, $response ] + $routeArguments);
 
+        // if new response is a string, then append it to the originale response
 
-        return $output;
+        if( is_string($newResponse) )
+        {
+            $newResponse = $response->write($newResponse);
+        }
+
+        return $newResponse;
     }
 
 
