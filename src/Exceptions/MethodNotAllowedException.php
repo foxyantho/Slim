@@ -16,9 +16,6 @@ use Slim\Http\Interfaces\ResponseInterface as Response;
 class MethodNotAllowedException extends SlimException
 {
 
-    protected $allowedMethods;
-
-
     /**
      * HTTP methods allowed
      *
