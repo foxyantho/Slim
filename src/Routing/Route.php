@@ -32,6 +32,7 @@ class Route implements RouteInterface
         add as addMiddleware;
     }
 
+
     /**
      * HTTP methods supported by this route
      * @var string[]
@@ -51,10 +52,10 @@ class Route implements RouteInterface
     protected $handler;
 
     /**
-     * Route name
-     * @var null|string
+     * Invacation stategy of the callable ; how it should be handled
+     * @var todo
      */
-    protected $name;
+    protected $invocationStrategy;
 
 
     /**
@@ -117,38 +118,30 @@ class Route implements RouteInterface
         return $this->handler;
     }
 
-    /**
-     * Get route name
-     *
-     * @return null|string
-     */
-    public function getName()
-    {
-        return $this->name;
-    }
-
-    /**
-     * Set route name
-     *
-     * @param string $name
-     * @throws InvalidArgumentException if the route name is not a string
-     */
-    public function name( $name )
-    {
-        if( !is_string($name) )
-        {
-            throw new InvalidArgumentException('Route name must be a string');
-        }
-
-        $this->name = $name;
-
-        return $this;
-    }
-
 
     /********************************************************************************
      * Route Runner
      *******************************************************************************/
+
+    /**
+     * Get route invocation strategy
+     *
+     * @return todo
+     */
+    public function getInvocationStrategy()
+    {
+        return $this->invocationStrategy;
+    }
+
+    /**
+     * Set route invocation strategy
+     *
+     * @param todo $strategy
+     */
+    public function setInvocationStrategy(InvocationStrategyInterface $strategy)
+    {
+        $this->invocationStrategy = $strategy;
+    }
 
 
     /**

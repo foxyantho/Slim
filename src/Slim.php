@@ -59,7 +59,6 @@ class Slim
 
     /**
      * Current version
-     *
      * @var string
      */
     const VERSION = '3.0.0';
@@ -78,7 +77,7 @@ class Slim
 
     /**
      * App's container, in case of need
-     * @var array
+     * @var array todo
      */
     protected $container = [];
 
@@ -239,9 +238,9 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function get( $pattern, $handler )
+    public function get( $routeName, $pattern, $handler )
     {
-        return $this->map(['GET'], $pattern, $handler);
+        return $this->map($routeName, ['GET'], $pattern, $handler);
     }
 
     /**
@@ -252,9 +251,9 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function post( $pattern, $handler )
+    public function post( $routeName, $pattern, $handler )
     {
-        return $this->map(['POST'], $pattern, $handler);
+        return $this->map($routeName, ['POST'], $pattern, $handler);
     }
 
     /**
@@ -265,9 +264,9 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function put( $pattern, $handler )
+    public function put( $routeName, $pattern, $handler )
     {
-        return $this->map(['PUT'], $pattern, $handler);
+        return $this->map($routeName, ['PUT'], $pattern, $handler);
     }
 
     /**
@@ -278,9 +277,9 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function patch( $pattern, $handler )
+    public function patch( $routeName, $pattern, $handler )
     {
-        return $this->map(['PATCH'], $pattern, $handler);
+        return $this->map($routeName, ['PATCH'], $pattern, $handler);
     }
 
     /**
@@ -291,9 +290,9 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function delete( $pattern, $handler )
+    public function delete( $routeName, $pattern, $handler )
     {
-        return $this->map(['DELETE'], $pattern, $handler);
+        return $this->map($routeName, ['DELETE'], $pattern, $handler);
     }
 
     /**
@@ -304,9 +303,9 @@ class Slim
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function options( $pattern, $handler )
+    public function options( $routeName, $pattern, $handler )
     {
-        return $this->map(['OPTIONS'], $pattern, $handler);
+        return $this->map($routeName, ['OPTIONS'], $pattern, $handler);
     }
 
     /**
@@ -316,9 +315,9 @@ class Slim
      * @param  mixed  $handler The route callback routine
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function any( $pattern, $handler )
+    public function any( $routeName, $pattern, $handler )
     {
-        return $this->map(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], $pattern, $handler);
+        return $this->map($routeName, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], $pattern, $handler);
     }
 
     /**
@@ -330,9 +329,9 @@ class Slim
      *
      * @return RouteInterface
      */
-    public function map( array $methods, $pattern, $handler )
+    public function map( $routeName, array $methods, $pattern, $handler )
     {
-        $route = $this->router->map($methods, $pattern, $handler);
+        $route = $this->router->map($routeName, $methods, $pattern, $handler);
 
         return $route;
     }

@@ -31,9 +31,7 @@ class Router implements RouterInterface
 {
 
     const FOUND = 0;
-
     const NOT_FOUND = 1;
-
     const METHOD_NOT_ALLOWED = 2;
 
 
@@ -42,12 +40,6 @@ class Router implements RouterInterface
      * @var array
      */
     protected $routes = [];
-
-    /**
-     * look-up table pattern of routes ; used in urlfor()
-     * @var null|array
-     */
-    protected $lookupTable;
 
     /**
      * URI base path "//example.com/folder/" used in urlfor()
@@ -78,6 +70,7 @@ class Router implements RouterInterface
     /**
      * Add route
      *
+     * @param  string          $routeHash
      * @param  string[]        $methods
      * @param  string          $pattern
      * @param  callable|string $handler
@@ -85,7 +78,7 @@ class Router implements RouterInterface
      * @return \Slim\Interfaces\RouteInterface
      * @throws InvalidArgumentException if the route pattern isn't a string
      */
-    public function map( array $methods, $pattern, $handler )
+    public function map( $routeHash, array $methods, $pattern, $handler )
     {
         if( !is_string($pattern) )
         {
@@ -99,7 +92,7 @@ class Router implements RouterInterface
 
         $route = $this->newRoute($methods, $pattern, $handler);
 
-        $this->routes[] = $route;
+        $this->routes[$routeHash] = $route;
 
 
         return $route;
@@ -130,7 +123,7 @@ class Router implements RouterInterface
     public function dispatch( $httpMethod, $uri)
     {
 
-        foreach( $this->routes as $route )
+        foreach( $this->routes as $routeHash => $route )
         {
             // get regex of route pattern    /user/{name}/{id:[0-9]+}/{page:int}
 
@@ -216,52 +209,34 @@ class Router implements RouterInterface
      * @throws \RuntimeException         If named route does not exist
      * @throws \InvalidArgumentException If required data not provided
      */
-    public function urlFor( $name, array $data = [], array $queryParams = [] )
+    public function urlFor( $routeHash, array $data = [], array $queryParams = [] )
     {
+        // search if route exist :
 
-        if( is_null($this->lookupTable) )
-        {
-            // no named routes, so lazy-build it
+        $route = $this->lookup($routeHash);
 
-            $this->buildLookupTable();
-        }
-
-        if( !isset($this->lookupTable[$name]) )
+        if( !isset($route) )
         {
             throw new RuntimeException('Named route does not exist for name : ' . $name);
         }
 
-
-        $pattern = $this->lookupTable[$name];
+        $pattern = $route->getPattern();
 
 
         // alternative without need of explode : /{([a-zA-Z0-9_]+)(?::\s*[^{}]*(?:\{(?-1)\}[^{}]*)*)?}/
 
-        $url = preg_replace_callback(
+        $url = preg_replace_callback('~{([^}]+)}~', function( $match ) use ( $data ) {
+            
+            $segmentName = explode(':', $match[1])[0];
 
-            '~{([^}]+)}~',
-
-            function( $match ) use ( $data )
+            if( !isset($data[$segmentName]) )
             {
-                $segmentName = explode(':', $match[1])[0];
+                throw new InvalidArgumentException('Missing data for URL segment: ' . $segmentName);
+            }
 
-                if( !isset($data[$segmentName]) )
-                {
-                    throw new InvalidArgumentException('Missing data for URL segment: ' . $segmentName);
-                }
+            return $data[$segmentName];
 
-                return $data[$segmentName];
-            },
-
-            $pattern
-        );
-
-        // set uri base path if set
-
-        if( $this->uriRoot )
-        {
-            $url = $this->uriRoot . ltrim($url, '/');
-        }
+        }, $pattern);
 
         // query params ?x=x
 
@@ -270,23 +245,28 @@ class Router implements RouterInterface
             $url .= '?' . http_build_query($queryParams);
         }
 
+        // set uri base path if set
+
+        if( $this->uriRoot )
+        {
+            $url = $this->uriRoot . ltrim($url, '/');
+        }
+
 
         return $url;
     }
 
     /**
-     * lazy-load index of pattern for named routes ; used in urlFor()
+     * Search for a route by it's name
+     *
+     * @param string $routeHash
+     * @return Route|void
      */
-    protected function buildLookupTable()
+    protected function lookup( $routeHash )
     {
-        $this->lookupTable = [];
-
-        foreach( $this->routes as $route )
+        if( isset($this->routes[$routeHash]) )
         {
-            if( $name = $route->getName() )
-            {
-                $this->lookupTable[$name] = $route->getPattern();
-            }
+            return $this->routes[$routeHash];
         }
     }
 
