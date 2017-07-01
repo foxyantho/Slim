@@ -13,12 +13,16 @@ use Slim\Routing\Interfaces\RouteInterface;
 use Slim\ResolveCallableTrait;
 use Slim\MiddlewareAwareTrait;
 
+use Slim\Routing\RouteInvocationStrategy as InvocationStrategy;
+use Slim\Routing\Interfaces\RouteInvocationStrategyInterface as InvocationStrategyInterface;
+
 use Slim\Http\Interfaces\RequestInterface as Request;
 use Slim\Http\Interfaces\ResponseInterface as Response;
 
 use Closure;
 use Exception;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Route
@@ -46,14 +50,20 @@ class Route implements RouteInterface
     protected $pattern;
 
     /**
-     * Route handler
+     * Route callable function
      * @var mixed
      */
-    protected $handler;
+    protected $callable;
 
     /**
-     * Invacation stategy of the callable ; how it should be handled
-     * @var todo
+     * Route parameters
+     * @var array
+     */
+    protected $arguments = [];
+
+    /**
+     * $handler invocation strategy
+     * @var InvocationStrategyInterface
      */
     protected $invocationStrategy;
 
@@ -63,16 +73,16 @@ class Route implements RouteInterface
      *
      * @param string[]     $methods The route HTTP methods
      * @param string       $pattern The route pattern
-     * @param mixed        $handler The route handler
+     * @param mixed        $callable The route callable function
      * @param RouteGroup[] $groups The parent route groups
      */
-    public function __construct( $methods, $pattern, $handler )
+    public function __construct( $methods, $pattern, $callable )
     {
         $this->methods = $methods;
 
         $this->pattern = $pattern;
 
-        $this->handler = $handler;
+        $this->callable = $callable;
     }
 
     /**
@@ -113,10 +123,21 @@ class Route implements RouteInterface
      *
      * @return mixed
      */
-    public function getHandler()
+    public function getCallable()
     {
         return $this->handler;
     }
+
+    /**
+     * Retrieve route arguments
+     *
+     * @return array
+     */
+    public function getArguments()
+    {
+        return $this->arguments;
+    }
+
 
 
     /********************************************************************************
@@ -124,23 +145,16 @@ class Route implements RouteInterface
      *******************************************************************************/
 
     /**
-     * Get route invocation strategy
+     * Prepare the route just before run()
      *
-     * @return todo
+     * @param ServerRequestInterface $request
+     * @param array $arguments
      */
-    public function getInvocationStrategy()
+    public function prepare( Request $request, array $arguments )
     {
-        return $this->invocationStrategy;
-    }
+        // Add the arguments
 
-    /**
-     * Set route invocation strategy
-     *
-     * @param todo $strategy
-     */
-    public function setInvocationStrategy(InvocationStrategyInterface $strategy)
-    {
-        $this->invocationStrategy = $strategy;
+        $this->arguments = $arguments;
     }
 
 
@@ -157,6 +171,7 @@ class Route implements RouteInterface
     public function run( Request $request, Response $response )
     {
         // Traverse middleware stack and fetch updated response
+
         return $this->callMiddlewareStack($request, $response);
     }
 
@@ -173,10 +188,56 @@ class Route implements RouteInterface
      */
     public function __invoke( Request $request, Response $response )
     {
+        // Resolve route callable
 
-        return [ $request, $response, $this->handler ];
+        $callable = $this->resolveCallable($this->callable);
 
-        //@TODO: @FIXME:  fix this mess & foundhandler
+        // call the route handler
+
+        $handler = $this->getInvocationStrategy();
+
+        if( !$handler )
+        {
+            throw new RuntimeException('Route invocation strategy is missing');
+        }
+
+        // call the route handler
+
+        $routeResponse = $handler($request, $response, $callable, $this->arguments);;
+
+        if( !$routeResponse instanceof Response )
+        {
+            throw new RuntimeException('Route handler must return an instance of ResponseInterface');
+        }
+
+
+        return $routeResponse;
+    }
+
+
+    /**
+     * Get default route invocation strategy
+     *
+     * @return RouteInvocationStrategyInterface|null
+     */
+    public function getInvocationStrategy()
+    {
+        if( !$this->invocationStrategy )
+        {
+            $this->invocationStrategy = new InvocationStrategy; // default
+        }
+
+        return $this->invocationStrategy;
+    }
+
+    /**
+     * Set default route invocation strategy
+     *
+     * @param RouteInvocationStrategyInterface $handler
+     */
+    public function setInvocationStrategy( InvocationStrategyInterface $handler )
+    {
+        $this->invocationStrategy = $handler;
     }
 
 

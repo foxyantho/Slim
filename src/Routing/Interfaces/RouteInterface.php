@@ -9,6 +9,8 @@
 
 namespace Slim\Routing\Interfaces;
 
+use Slim\Routing\Interfaces\RouteInvocationStrategyInterface;
+
 use Slim\Http\Interfaces\RequestInterface;
 use Slim\Http\Interfaces\ResponseInterface;
 
@@ -21,19 +23,11 @@ use Slim\Http\Interfaces\ResponseInterface;
 interface RouteInterface
 {
 
-    /**
-     * Dispatch route callable against current Request and Response objects
-     *
-     * This method invokes the route object's callable. If middleware is
-     * registered for the route, each callable middleware is invoked in
-     * the order specified.
-     *
-     * @param RequestInterface  $request  The current Request object
-     * @param ResponseInterface $response The current Response object
-     * @param array             $args     Parsed pattern data
-     *
-     * @return ResponseInterface
-     */
     public function __invoke( RequestInterface $request, ResponseInterface $response );
+
+
+    public function getInvocationStrategy();
+
+    public function setInvocationStrategy( RouteInvocationStrategyInterface $handler );
 
 }

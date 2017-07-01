@@ -11,7 +11,7 @@
 namespace Slim\Routing;
 
 use Slim\Routing\Interfaces\RouterInterface;
-use Slim\Routing\Interfaces\RouteInterface;
+use Slim\Routing\Interfaces\RouteInvocationStrategyInterface;
 
 use Slim\Http\Interfaces\RequestInterface as Request;
 
@@ -70,7 +70,7 @@ class Router implements RouterInterface
     /**
      * Add route
      *
-     * @param  string          $routeHash
+     * @param  string          $identifier
      * @param  string[]        $methods
      * @param  string          $pattern
      * @param  callable|string $handler
@@ -78,21 +78,23 @@ class Router implements RouterInterface
      * @return \Slim\Interfaces\RouteInterface
      * @throws InvalidArgumentException if the route pattern isn't a string
      */
-    public function map( $routeHash, array $methods, $pattern, $handler )
+    public function map( $identifier, array $methods, $pattern, $handler )
     {
         if( !is_string($pattern) )
         {
             throw new InvalidArgumentException('Route pattern must be a string');
         }
 
-        // According to RFC methods are defined in uppercase (See RFC 7231)
-        $methods = array_map('strtoupper', $methods);
+        $methods = array_map('strtoupper', $methods); // RFC 7231, methods are in uppercase
 
-        // Add route
 
-        $route = $this->newRoute($methods, $pattern, $handler);
+        // create route
 
-        $this->routes[$routeHash] = $route;
+        $route = $this->createRoute($methods, $pattern, $handler);
+
+        // add route the the list
+
+        $this->routes[$identifier] = $route;
 
 
         return $route;
@@ -107,9 +109,11 @@ class Router implements RouterInterface
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    protected function newRoute( array $methods, $pattern, $handler )
+    protected function createRoute( array $methods, $pattern, $handler )
     {
-        return ( new Route($methods, $pattern, $handler) );
+        $route = new Route($methods, $pattern, $handler);
+
+        return $route;
     }
 
     /**
@@ -120,10 +124,12 @@ class Router implements RouterInterface
      * @return array
      * @link   https://github.com/nikic/FastRoute/
      */
-    public function dispatch( $httpMethod, $uri)
+    public function dispatch( $httpMethod, $uri) // todo refactor
     {
+        // $uri = '/' . ltrim($request->getUri()->getPath(), '/');
 
-        foreach( $this->routes as $routeHash => $route )
+
+        foreach( $this->routes as $identifier => $route )
         {
             // get regex of route pattern    /user/{name}/{id:[0-9]+}/{page:int}
 
@@ -157,6 +163,7 @@ class Router implements RouterInterface
                 if( !in_array($httpMethod, $allowedMethods = $route->getMethods()) )
                 {
                     return [ static::METHOD_NOT_ALLOWED, $allowedMethods ];
+                    // todo security disable this ?
                 }
 
                 // only keep named params
@@ -165,7 +172,7 @@ class Router implements RouterInterface
                 {
                     if( is_int($key) )
                     {
-                        unset($params[$key]);
+                        unset($params[$key]); // todo
                     }
                 }
 
@@ -209,11 +216,11 @@ class Router implements RouterInterface
      * @throws \RuntimeException         If named route does not exist
      * @throws \InvalidArgumentException If required data not provided
      */
-    public function urlFor( $routeHash, array $data = [], array $queryParams = [] )
+    public function urlFor( $identifier, array $data = [], array $queryParams = [] )
     {
         // search if route exist :
 
-        $route = $this->lookup($routeHash);
+        $route = $this->lookup($identifier);
 
         if( !isset($route) )
         {
@@ -259,17 +266,16 @@ class Router implements RouterInterface
     /**
      * Search for a route by it's name
      *
-     * @param string $routeHash
+     * @param string $identifier
      * @return Route|void
      */
-    protected function lookup( $routeHash )
+    protected function lookup( $identifier )
     {
-        if( isset($this->routes[$routeHash]) )
+        if( isset($this->routes[$identifier]) )
         {
-            return $this->routes[$routeHash];
+            return $this->routes[$identifier];
         }
     }
-
 
 
 }

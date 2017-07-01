@@ -18,7 +18,10 @@ use Slim\Http\Request as HttpRequest;
 use Slim\Http\Response as HttpResponse;
 
 use Slim\Routing\Router;
+use Slim\Routing\RouteInvocationStrategy;
+use Slim\Routing\Interfaces\RouteInvocationStrategyInterface;
 
+//use Slim\Handlers\Interfaces\HandlerInterface;
 use Slim\Handlers\Found as FoundHandler;
 use Slim\Handlers\NotFound as NotFoundHandler;
 use Slim\Handlers\NotAllowed as NotAllowedHandler;
@@ -68,11 +71,15 @@ class Slim
 
     protected $environment;
 
+
     protected $request;
 
     protected $response;
 
+
     protected $router;
+
+    protected $routeInvocationStrategy; // AKA foundHandler
 
 
     /**
@@ -81,6 +88,9 @@ class Slim
      */
     protected $container = [];
 
+    /**
+     * Route handlers
+     */
 
     protected $foundHandler;
 
@@ -90,6 +100,9 @@ class Slim
 
     protected $exceptionHandler;
 
+    /**
+     * App instance
+     */
 
     protected static $instance;
 
@@ -114,20 +127,22 @@ class Slim
 
         $method = $this->environment['request.method'];
 
-        $request_headers = new HttpHeaders( $this->environment->getAllHeaders() ); // getallheaders
+        $requestHeaders = new HttpHeaders( $this->environment->getAllHeaders() ); // getallheaders
 
         $body = file_get_contents('php://input'); // stream_get_contents(fopen('php://input', 'r'));
 
-        $this->request = new HttpRequest($method, $request_headers, $this->environment, $body);
+        $this->request = new HttpRequest($method, $requestHeaders, $this->environment, $body);
 
 
         // response
 
         $protocolVersion = $this->settings['httpVersion'];
 
-        $response_headers = new HttpHeaders(['content.type' => 'text/html']);
+        $responseHeaders = new HttpHeaders(['content.type' => 'text/html']);
 
-        $this->response = ( new HttpResponse(200, $response_headers) )->protocolVersion($protocolVersion);
+        $this->response = new HttpResponse(200, $responseHeaders);
+    
+        $this->response->protocolVersion($protocolVersion);
 
 
         // router
@@ -137,30 +152,11 @@ class Slim
         $this->router->setUriRoot($this->request->getUriRoot()); // urlfor() stuff
 
 
-        // handlers
-
-        $this->foundHandler = function() {
-            return call_user_func_array(new FoundHandler, func_get_args());
-        };
-
-        $this->notFoundHandler = function() {
-            return call_user_func_array(new NotFoundHandler, func_get_args());
-        };
-
-        $this->notAllowedHandler = function() {
-            return call_user_func_array(new NotAllowedHandler, func_get_args());
-        };
-
-        $this->exceptionHandler = function() {
-            return call_user_func_array(new ExceptionHandler($this->settings['displayErrorDetails']), func_get_args());
-        };
-
-
         // instance, if needed
 
         static::$instance = $this;
-
     }
+
 
     /**
      * Get default settings
@@ -189,8 +185,7 @@ class Slim
     }
 
     /**
-     * Set the globally available instance of the app
-     * Needed to be instantiated first
+     * Set the globally available instance of the app ; Needed to be instantiated first
      *
      * @return static|null
      */
@@ -201,12 +196,13 @@ class Slim
 
     /**
      * Container's get
+     * 
      * @param  mixed $key
      * @return mixed|null
      */
     public function __get( $key )
     {
-        if( array_key_exists($key, $this->container) )
+        if( array_key_exists($key, $this->container) ) // todo isset
         {
             return $this->container[$key];
         }
@@ -216,6 +212,7 @@ class Slim
 
     /**
      * Container's set
+     * 
      * @param mixed $key
      * @param mixed $value
      */
@@ -234,90 +231,90 @@ class Slim
      * Add GET route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $handler The route callback routine
+     * @param  mixed  $callable The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function get( $routeName, $pattern, $handler )
+    public function get( $routeName, $pattern, $callable )
     {
-        return $this->map($routeName, ['GET'], $pattern, $handler);
+        return $this->map($routeName, ['GET'], $pattern, $callable);
     }
 
     /**
      * Add POST route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $handler The route callback routine
+     * @param  mixed  $callable The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function post( $routeName, $pattern, $handler )
+    public function post( $routeName, $pattern, $callable )
     {
-        return $this->map($routeName, ['POST'], $pattern, $handler);
+        return $this->map($routeName, ['POST'], $pattern, $callable);
     }
 
     /**
      * Add PUT route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $handler The route callback routine
+     * @param  mixed  $callable The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function put( $routeName, $pattern, $handler )
+    public function put( $routeName, $pattern, $callable )
     {
-        return $this->map($routeName, ['PUT'], $pattern, $handler);
+        return $this->map($routeName, ['PUT'], $pattern, $callable);
     }
 
     /**
      * Add PATCH route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $handler The route callback routine
+     * @param  mixed  $callable The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function patch( $routeName, $pattern, $handler )
+    public function patch( $routeName, $pattern, $callable )
     {
-        return $this->map($routeName, ['PATCH'], $pattern, $handler);
+        return $this->map($routeName, ['PATCH'], $pattern, $callable);
     }
 
     /**
      * Add DELETE route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $handler The route callback routine
+     * @param  mixed  $callable The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function delete( $routeName, $pattern, $handler )
+    public function delete( $routeName, $pattern, $callable )
     {
-        return $this->map($routeName, ['DELETE'], $pattern, $handler);
+        return $this->map($routeName, ['DELETE'], $pattern, $callable);
     }
 
     /**
      * Add OPTIONS route
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $handler The route callback routine
+     * @param  mixed  $callable The route callback routine
      *
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function options( $routeName, $pattern, $handler )
+    public function options( $routeName, $pattern, $callable )
     {
-        return $this->map($routeName, ['OPTIONS'], $pattern, $handler);
+        return $this->map($routeName, ['OPTIONS'], $pattern, $callable);
     }
 
     /**
      * Add route for any HTTP method
      *
      * @param  string $pattern  The route URI pattern
-     * @param  mixed  $handler The route callback routine
+     * @param  mixed  $callable The route callback routine
      * @return \Slim\Interfaces\RouteInterface
      */
-    public function any( $routeName, $pattern, $handler )
+    public function any( $routeName, $pattern, $callable )
     {
-        return $this->map($routeName, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], $pattern, $handler);
+        return $this->map($routeName, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], $pattern, $callable);
     }
 
     /**
@@ -325,13 +322,13 @@ class Slim
      *
      * @param  string[] $methods  Numeric array of HTTP method names
      * @param  string   $pattern  The route URI pattern
-     * @param  mixed    $handler The route callback routine
+     * @param  mixed    $callable The route callback routine
      *
      * @return RouteInterface
      */
-    public function map( $routeName, array $methods, $pattern, $handler )
+    public function map( $routeName, array $methods, $pattern, $callable )
     {
-        $route = $this->router->map($routeName, $methods, $pattern, $handler);
+        $route = $this->router->map($routeName, $methods, $pattern, $callable);
 
         return $route;
     }
@@ -386,7 +383,7 @@ class Slim
         {
             $response = $this->handleException($this->request, $this->response, $exception);
         }
-
+        // todo thrwable
 
         // send response
 
@@ -397,6 +394,7 @@ class Slim
             $this->respond($response);
         }
 
+        // get the final response
 
         return $response;
     }
@@ -485,30 +483,31 @@ class Slim
             $request->getUriPath()
         );
 
+
         // 0 -> type
         // 1 -> Route
         // 2 -> uri arguments
 
         if( $routeInfo[0] === Router::FOUND )
         {
-
             // URL decode the named arguments from the router
             // aka dispatchRouterAndPrepareRoute
 
-            $arguments = array_map('urldecode', $routeInfo[2]);
+            $routeArguments = array_map('urldecode', $routeInfo[2]);
+
+            // prepare the route
+
+            $handler = $this->getRouteInvocationStrategy();
+
+            $route = $routeInfo[1];
+
+            $route->prepare($request, $routeArguments);
+
+            $route->setInvocationStrategy($handler);
 
             // traverse route middlewares :
 
-            list( $request, $response, $handler ) = $routeInfo[1]->run($request, $response);
-
-            // return the response :
-
-            $handler = $this->resolveCallable($handler);
-
-
-            $foundHandler = $this->foundHandler;
-
-            return $foundHandler($request, $response, $handler, $arguments);
+            return $route->run($request, $response);
         }
 
         if( $routeInfo[0] === Router::NOT_FOUND )
@@ -536,14 +535,14 @@ class Slim
     {
         if( $e instanceof NotFoundException )
         {
-            $handler = $this->notFoundHandler;
+            $handler = $this->getNotFoundHandler();
 
             return $handler($e->getRequest(), $e->getResponse());
         }
 
         elseif( $e instanceof MethodNotAllowedException )
         {
-            $handler = $this->notAllowedHandler;
+            $handler = $this->getNotAllowedHandler();
 
             return $handler($e->getRequest(), $e->getResponse(), $e->getAllowedMethods());
         }
@@ -557,10 +556,86 @@ class Slim
 
         // other exception, use $request and $response params
 
-        $handler = $this->exceptionHandler;
+        $handler = $this->getExceptionHandler();
 
         return $handler($request, $response, $e);
     }
+
+
+
+    /********************************************************************************
+     * Route handlers ; HandlerInterface
+     *******************************************************************************/
+
+
+    // route invocation strategy ; found
+
+    public function getRouteInvocationStrategy()
+    {
+        if( !$this->routeInvocationStrategy )
+        {
+            $this->routeInvocationStrategy = new RouteInvocationStrategy; // default
+        }
+
+        return $this->routeInvocationStrategy;
+    }
+
+    public function setRouteInvocationStrategy( RouteInvocationStrategyInterface $handler )
+    {
+        $this->routeInvocationStrategy = $handler;
+    }
+
+    // Not Found
+
+    public function getNotFoundHandler()
+    {
+        if( !$this->notFoundHandler )
+        {
+            $this->notFoundHandler = new NotFoundHandler;
+        }
+
+        return $this->notFoundHandler;
+    }
+
+    public function setNotFoundHandler( callable $handler )
+    {
+        $this->notFoundHandler = $handler;
+    }
+
+    // Method Not Allowed
+
+    public function getNotAllowedHandler()
+    {
+        if( !$this->notAllowedHandler )
+        {
+            $this->notAllowedHandler = new NotAllowedHandler;
+        }
+
+        return $this->notAllowedHandler;
+    }
+
+    public function setHotAllowedHandler( callable $handler )
+    {
+        $this->notAllowedHandler = $handler;
+    }
+
+    // Exceptions ; errors
+
+    public function getExceptionHandler()
+    {
+        if( !$this->exceptionHandler )
+        {
+            $this->exceptionHandler = new ExceptionHandler($this->settings['displayErrorDetails']);
+        }
+
+        return $this->exceptionHandler;
+    }
+
+    public function setExceptionHandler( callable $handler )
+    {
+        $this->exceptionHandler = $handler;
+    }
+
 
 
 }
