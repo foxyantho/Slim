@@ -202,12 +202,12 @@ class Slim
      */
     public function __get( $key )
     {
-        if( array_key_exists($key, $this->container) ) // todo isset
+        if( isset($this->container[$key]) )
         {
             return $this->container[$key];
         }
 
-        return null;
+        return null; // default
     }
 
     /**

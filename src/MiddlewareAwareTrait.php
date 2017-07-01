@@ -117,7 +117,7 @@ trait MiddlewareAwareTrait
      */
     public function callMiddlewareStack( Request $request, Response $response )
     {
-        if( is_null($this->stack) )
+        if( !isset($this->stack) )
         {
             $this->seedMiddlewareStack();
         }
