@@ -35,6 +35,21 @@ class Environment extends Collection implements EnvironmentInterface
 
 
     /**
+     * Reconstruct original header name todo
+     *
+     * @param string $key An HTTP header key from the $_SERVER global variable
+     * @return string The reconstructed key
+     *
+     * @example CONTENT_TYPE => Content-Type
+     * @example HTTP_USER_AGENT => User-Agent
+     */
+    public function reconstructKey( $key )
+    {
+        return str_replace('.', '-', ucwords($key, '.'));
+    }
+
+
+    /**
      * Get all header extracted from $_SERVER[HTTP_]
      * As opposed to getallheaders Apache function
      * 
@@ -47,18 +62,21 @@ class Environment extends Collection implements EnvironmentInterface
             'auth.type', 'php.auth.user', 'php.auth.pw', 'php.auth.digest'
         ];
 
-
-        $data = [];
+        $headers = [];
 
         foreach( $this->all() as $key => $value )
         {
-            if( strpos($key, 'http.') === 0 || in_array($key, $special) )
+            if( strpos($key, 'http.') === 0 )
             {
-                $data[substr($key, 5)] =  $value; // strip 'http.'
+                $headers[substr($key, 5)] =  $value; // strip 'http.'
+            }
+            elseif( in_array($key, $special) )
+            {
+                $headers[$key] =  $value;
             }
         }
 
-        return $data;
+        return $headers;
     }
 
 

@@ -21,8 +21,6 @@ use Slim\Routing\Router;
 use Slim\Routing\RouteInvocationStrategy;
 use Slim\Routing\Interfaces\RouteInvocationStrategyInterface;
 
-//use Slim\Handlers\Interfaces\HandlerInterface;
-use Slim\Handlers\Found as FoundHandler;
 use Slim\Handlers\NotFound as NotFoundHandler;
 use Slim\Handlers\NotAllowed as NotAllowedHandler;
 use Slim\Handlers\Exception as ExceptionHandler;
@@ -40,15 +38,6 @@ use Slim\Exceptions\SlimException;
  * This is the primary class with which you instantiate,
  * configure, and run a Slim Framework application.
  * The \Slim\App class also accepts Slim Framework middleware.
- *
- * @property-read array $settings App settings
- * @property-read EnvironmentInterface $environment
- * @property-read RequestInterface $request
- * @property-read ResponseInterface $response
- * @property-read RouterInterface $router
- * @property-read callable $errorHandler
- * @property-read callable $notFoundHandler function($request, $response)
- * @property-read callable $notAllowedHandler function($request, $response, $allowedHttpMethods)
  */
 class Slim
 {
@@ -59,7 +48,6 @@ class Slim
         add as addMiddleware;
     }
 
-
     /**
      * Current version
      * @var string
@@ -67,30 +55,29 @@ class Slim
     const VERSION = '3.0.0';
 
 
+    // Setting, server env
+
     protected $settings;
 
     protected $environment;
 
+    // Container ; if needed
+
+    protected $container = [];
+
+    // Request ; Response flow
 
     protected $request;
 
     protected $response;
 
+    // Router
 
     protected $router;
 
     protected $routeInvocationStrategy; // AKA foundHandler
 
-
-    /**
-     * App's container, in case of need
-     * @var array todo
-     */
-    protected $container = [];
-
-    /**
-     * Route handlers
-     */
+    // Route handlers
 
     protected $foundHandler;
 
@@ -100,11 +87,10 @@ class Slim
 
     protected $exceptionHandler;
 
-    /**
-     * App instance
-     */
+    // App instance
 
     protected static $instance;
+
 
 
     /**
@@ -112,27 +98,25 @@ class Slim
      */
     public function __construct( array $userSettings = [] )
     {
-
         // settings
 
         $this->settings = array_merge(static::getDefaultSettings(), $userSettings);
-
 
         // environment
 
         $this->environment = new HttpEnvironment($_SERVER);
 
-
         // request
 
         $method = $this->environment['request.method'];
 
-        $requestHeaders = new HttpHeaders( $this->environment->getAllHeaders() ); // getallheaders
+        $environmentHeaders = $this->environment->getAllHeaders(); // getallheaders
+
+        $requestHeaders = new HttpHeaders($environmentHeaders); 
 
         $body = file_get_contents('php://input'); // stream_get_contents(fopen('php://input', 'r'));
 
         $this->request = new HttpRequest($method, $requestHeaders, $this->environment, $body);
-
 
         // response
 
@@ -144,19 +128,15 @@ class Slim
     
         $this->response->protocolVersion($protocolVersion);
 
-
         // router
 
         $this->router = new Router;
-
-        $this->router->setUriRoot($this->request->getUriRoot()); // urlfor() stuff
 
 
         // instance, if needed
 
         static::$instance = $this;
     }
-
 
     /**
      * Get default settings
@@ -333,6 +313,23 @@ class Slim
         return $route;
     }
 
+    /**
+     * Return a route by it's identifier
+     *
+     * @param mixed $identifier
+     * @param array $data
+     * @param array $queryParams
+     * @return string
+     */
+    public function urlFor( $identifier, array $routeParams = [], array $queryParams = [] )
+    {
+        $root = rtrim($this->request->getUriRoot(), '/'); // remove ending slash
+
+        $routeUri = $this->router->urlFor($identifier, $routeParams, $queryParams);
+
+        return $root.$routeUri;
+    }
+    // TODO
 
     /********************************************************************************
      * Application flow methods
@@ -482,7 +479,6 @@ class Slim
             $request->getMethod(),
             $request->getUriPath()
         );
-
 
         // 0 -> type
         // 1 -> Route

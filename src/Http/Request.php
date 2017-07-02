@@ -10,8 +10,8 @@
 namespace Slim\Http;
 
 use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\HeadersInterface;
-use Slim\Http\Interfaces\EnvironmentInterface;
+use Slim\Http\Interfaces\HeadersInterface as Headers;
+use Slim\Http\Interfaces\EnvironmentInterface as Environment;
 
 use Closure;
 
@@ -20,36 +20,14 @@ use Slim\Collection;
 use InvalidArgumentException;
 use RuntimeException;
 
+
 /**
  * Response
  *
- * This class represents an HTTP response. It manages
- * the response status, headers, and body
- * according to the PSR-7 standard.
- *
- * @link https://github.com/php-fig/http-message/blob/master/src/MessageInterface.php
- * @link https://github.com/php-fig/http-message/blob/master/src/RequestInterface.php
+ * This class represents an HTTP response. It manages the response status, headers, and body
  */
 class Request implements RequestInterface
 {
-
-    /**
-     * The request protocol version
-     * @var string
-     */
-    protected $protocolVersion = '1.1';
-
-    /**
-     * The request method
-     * @var string
-     */
-    protected $method;
-
-    /**
-     * The request headers
-     * @var \Slim\Http\Interfaces\HeadersInterface
-     */
-    protected $headers;
 
     /**
      * server environment variables at the time the request was created.
@@ -58,34 +36,16 @@ class Request implements RequestInterface
     protected $serverParams;
 
     /**
-     * the request body object
+     * The request protocol version
      * @var string
      */
-    protected $body;
+    protected $protocolVersion = '1.1';
 
     /**
-     * List of request body parsers (e.g., url-encoded, JSON, XML, multipart)
-     * @var callable[]
+     * The request method GET, PATCH
+     * @var string
      */
-    protected $bodyParsers = [];
-
-    /**
-     * The request query params
-     * @var array
-     */
-    protected $queryParams;
-
-    /**
-     * The request body params
-     * @var array
-     */
-    protected $bodyParams;
-
-    /**
-     * The request attributes
-     * @var \Slim\Collection
-     */
-    protected $attributes;
+    protected $method;
 
     /**
      * Valid request methods
@@ -97,6 +57,65 @@ class Request implements RequestInterface
 
 
     /**
+     * Uri scheme http https
+     * @var string
+     */
+    protected $uriScheme;
+
+    /**
+     * Uri Host "localhost"
+     * @var string
+     */
+    protected $uriHost;
+
+    /**
+     * Uri path ; without query string "/page/welcome"
+     * @var string
+     */
+    protected $uriPath;
+
+
+    /**
+     * Uri query string "page=hello&lang=fr"
+     * @var string
+     */
+    protected $queryString;
+
+    /**
+     * The parsed query params
+     * @var array
+     */
+    protected $queryParams;
+
+
+    /**
+     * The request headers
+     * @var \Slim\Http\Interfaces\HeadersInterface
+     */
+    protected $headers;
+
+
+    /**
+     * The request body content
+     * @var string
+     */
+    protected $body;
+
+    /**
+     * The parsed body params
+     * @var array
+     */
+    protected $bodyParams;
+
+    /**
+     * List of request body parsers (e.g., url-encoded, JSON, XML, multipart)
+     * @var array
+     */
+    protected $bodyParsers = [];
+
+
+
+    /**
      * Create new HTTP request.
      *
      * @param string                $method
@@ -104,15 +123,48 @@ class Request implements RequestInterface
      * @param EnvironmentInterface  $serverParams
      * @param mixed                 $body
      */
-    public function __construct( $method, HeadersInterface $headers, EnvironmentInterface $serverParams, $body )
+    public function __construct( $method, Headers $headers, Environment $serverParams, $body )
     {
-        $this->method = $this->filterMethod($method); // @FIXME:wrap exception ; handle exception if not know
-
-        $this->headers = $headers;
+        // _SERVER
 
         $this->serverParams = $serverParams;
 
-        $this->body = $body;
+        // method
+
+        $this->method = $this->filterMethod($method); // @FIXME:wrap exception ; handle exception if not know
+
+        // URI part
+
+        $isSecure = $serverParams['https'];
+
+        $scheme = ( !empty($isSecure) && $isSecure === 'on' ) ? 'https' : 'http';
+
+        $this->uriScheme = $scheme;
+
+        // URI authority: Host
+
+        $host = $serverParams['http.host'] ?: $serverParams['server.name'];
+
+        $this->uriHost = $host;
+
+        // request URI, stripped from query params
+
+        $requestUri = rawurldecode($serverParams['request.uri']); // &20
+
+        if( ($pos = strpos($requestUri, '?')) !== false )
+        {
+            $requestUri = substr($requestUri, 0, $pos);
+        }
+
+        $this->uriPath = '/' . ltrim($requestUri, '/');
+
+        //$requestUri = parse_url('http://example.com'.$serverParams['request.uri'], PHP_URL_PATH);
+
+        // query string
+
+        $queryString = $serverParams['query.string'];
+
+        $this->queryString = $queryString; // todo if empty ?
 
         // protocol version
         
@@ -121,35 +173,79 @@ class Request implements RequestInterface
             $this->protocolVersion = str_replace('HTTP/', '', $serverParams['server.protocol']);
         }
 
-        // route attributes
+        // headers ; request content
+        
+        $this->headers = $headers;
 
-        $this->attributes = new Collection;
+        $this->body = $body;
+
 
         // body params parsers :
 
         $this->registerMediaTypeParser('application/x-www-form-urlencoded', function( $input )
         {
-            parse_str(urldecode($input), $data); // if not argment#2 -> extract()
+            parse_str(urldecode($input), $result); // if not argment#2 -> extract()
 
-            return $data;
+            return $result;
         });
 
         $this->registerMediaTypeParser('application/json', function( $input )
         {
-            return json_decode($input, true); // as array
+            $result = json_decode($input, true); // as array
+
+            return ( is_array($result) ? $result : null );
         });
-/*
-        $this->registerMediaTypeParser(['text/xml', 'application/xml'], function( $input )
+
+        $this->registerMediaTypeParser('application/xml', function( $input )
         {
             $backup = libxml_disable_entity_loader(true);
+            $backup_errors = libxml_use_internal_errors(true);
             $result = simplexml_load_string($input);
+
             libxml_disable_entity_loader($backup);
+            libxml_clear_errors();
+            libxml_use_internal_errors($backup_errors);
 
-            return $result;
+            return ( $result !== false ? $result : null );
         });
-*/
 
+        $this->registerMediaTypeParser('text/xml', function( $input )
+        {
+            $backup = libxml_disable_entity_loader(true);
+            $backup_errors = libxml_use_internal_errors(true);
+            $result = simplexml_load_string($input);
+
+            libxml_disable_entity_loader($backup);
+            libxml_clear_errors();
+            libxml_use_internal_errors($backup_errors);
+    
+            return ( $result !== false ? $result : null );
+        });
+
+
+
+        // createRequestFromFactory($_GET, $_POST, array(), $_COOKIE, $_FILES, $_SERVER);
         // @TODO enctype="multipart/form-data" for upload form
+    }
+
+
+    /*******************************************************************************
+     * Server Params
+     ******************************************************************************/
+
+
+    /**
+     * Retrieve server parameters.
+     *
+     * Retrieves data related to the incoming request environment,
+     * typically derived from PHP's $_SERVER superglobal. The data IS NOT
+     * REQUIRED to originate from $_SERVER.
+     *
+     * @return array
+     */
+    public function getServerParams()
+    {
+        return $this->serverParams;
     }
 
 
@@ -205,27 +301,23 @@ class Request implements RequestInterface
      * @return null|string
      * @throws \InvalidArgumentException on invalid HTTP method.
      */
-    protected function filterMethod( $method )
+    protected function filterMethod( $method ) // todo
     {
         if( !is_string($method) )
         {
-            throw new InvalidArgumentException(sprintf(
-                'Unsupported HTTP method ; must be a string, received %s',
+            throw new InvalidArgumentException(sprintf('Unsupported HTTP method ; must be a string, received %s',
                 ( is_object($method) ? get_class($method) : gettype($method) )
             ));
         }
-
 
         $method = strtoupper($method);
 
         if( !in_array($method, $this->validMethods) )
         {
-            throw new InvalidArgumentException(sprintf(
-                'Unsupported HTTP method "%s" provided',
+            throw new InvalidArgumentException(sprintf('Unsupported HTTP method "%s" provided',
                 $method
             ));
         }
-
 
         return $method;
     }
@@ -318,14 +410,114 @@ class Request implements RequestInterface
      */
     public function isXhr()
     {
-        return $this->getHeader('X-Requested-With') === 'XMLHttpRequest';
+        return $this->getHeader('x.requested.with') === 'XMLHttpRequest';
     }
+
+
+
+    /*******************************************************************************
+     * Uri
+     ******************************************************************************/
+
+     /**
+      * Return the URi scheme "http", "https"
+      *
+      * @return string
+      */
+     public function getUriScheme()
+     {
+         return $this->uriScheme;
+     }
+
+    /**
+     * Retrieve the authority portion of the URI.
+     * If the port component is not set or is the standard port for the current
+     * scheme, it SHOULD NOT be included. "user:pass@site.com:port"
+     *
+     * @return string
+     */
+    public function getUriAuthority()
+    {
+        return $this->uriHost;
+    }
+
+    /**
+     * Get the Uri path "/page/welcome" or "/"
+     *
+     * @return string
+     */
+    public function getUriPath()
+    {
+        return $this->uriPath;
+    }
+
+    /**
+     * Get website's root uri ( http://example.com/ )
+     * 
+     * @return string
+     */
+    public function getUriRoot()
+    {
+        return $this->getUriScheme().'://'.$this->getUriAuthority().'/'; // getUriSubFolder
+    }
+
+
+
+    /*******************************************************************************
+     * Query Params
+     ******************************************************************************/
+
+
+    /**
+     * Get query string of the request "page=welcome&lang=fr"
+     *
+     * @return string
+     */
+    public function getQueryString()
+    {
+        return $this->queryString;
+    }
+
+    /**
+     * Retrieve query string arguments : the deserialized query string arguments, if any.
+     * aka $_GET
+     *
+     * @return array
+     */
+    public function getQueryParams()
+    {
+        if( !isset($this->queryParams) )
+        {
+            // lazy
+            parse_str($this->queryString, $this->queryParams); // send URL decodes in $queryParams
+        }
+
+        return $this->queryParams;
+    }
+
+    /**
+     * Retrieve a query parameter provided in the request body. aka $_GET
+     * 
+     * @param  string  $key
+     * @param  mixed   $default
+     * @return mixed
+     */
+    public function query( $key, $default = null )
+    {
+        if( !isset($this->queryParams) )
+        {
+            // lazy
+            parse_str($this->queryString, $this->queryParams); // send URL decodes in $queryParams
+        }
+
+        return isset($this->queryParams[$key]) ? $this->queryParams[$key] : $default;
+    }
+
 
 
     /*******************************************************************************
      * Headers
      ******************************************************************************/
-
 
     /**
      * Retrieves all message headers.
@@ -345,36 +537,26 @@ class Request implements RequestInterface
     }
 
     /**
-     * Checks if a header exists by the given case-insensitive name.
-     *
-     * @param  string $name Case-insensitive header field name.
-     * @return bool
-     */
-    public function hasHeader( $name )
-    {
-        return $this->headers->has($name);
-    }
-
-    /**
      * Retrieves a header by the given case-insensitive name as an array of strings.
      *
      * @param  string   $name Case-insensitive header field name.
      * @return string|null
      */
-    public function getHeader( $name )
+    public function getHeader( $key )
     {
-        return $this->headers->get($name);
+        return $this->headers->get($key);
     }
 
-
-
-
-
-
-
-
-
-
+    /**
+     * Checks if a header exists by the given case-insensitive name.
+     *
+     * @param  string $name Case-insensitive header field name.
+     * @return bool
+     */
+    public function hasHeader( $key )
+    {
+        return $this->headers->has($key);
+    }
 
 
     /**
@@ -412,26 +594,23 @@ class Request implements RequestInterface
      *
      * @return array
      */
-    public function getContentTypeParams()
+    public function getMediaTypeParams()
     {
-        if( $contentType = $this->getHeader('Content-Type') )
-        {
-            $params = [];
+        $contentTypeParams = [];
 
+        if( $contentType = $this->getContentType() )
+        {
             $parts = preg_split('/\s*[;,]\s*/', $contentType);
 
-            
             foreach( array_slice($parts, 1) as $part ) // first is content-type : not needed
             {
                 $conf = explode('=', $part);
 
-                $params[strtolower($conf[0])] = $conf[1];
+                $contentTypeParams[strtolower($conf[0])] = $conf[1];
             }
-
-            return $params;
         }
 
-        return false;
+        return $contentTypeParams;
     }
 
     /**
@@ -446,247 +625,13 @@ class Request implements RequestInterface
             return (int) $result;
         }
 
-        return false;
-    }
-
-// @TODO: cookies ?
-
-
-    /*******************************************************************************
-     * Uri
-     ******************************************************************************/
-
-
-    /**
-     * Retrieve the authority portion of the URI.
-     * If the port component is not set or is the standard port for the current
-     * scheme, it SHOULD NOT be included.
-     *
-     * @return string
-     */
-    public function getUriAuthority()
-    {
-        // Authority: Host
-
-        if( $this->serverParams['http.x.forwarded.host'] ) // proxy
-        {
-            return trim(current(explode(',', $this->serverParams['http.x.forwarded_host'])));
-        }
-        
-        if( $this->serverParams['http.host'] ) // http header
-        {
-            return $this->serverParams['http.host'];
-        }
-        
-        return $this->serverParams['server.name'];
-    }
-
-    /**
-     * Retrieve the path segment of the URI: the folder from where the project is running.
-     * If there is no path ( load from root folder -> equal "." ) return "/".
-     * 
-     * @return string
-     */
-    public function getUriBasePath()
-    {
-        $basePath = dirname($this->serverParams['script.name']); // "/"index.php, "/folder/"index.php
-
-        return $basePath !== '.' ?
-
-            sprintf('/%s/', trim($basePath, '/'))   :   '/';
-    }
-
-    /**
-     * Retrieve the path segment of the URI. ("/route/welcome")
-     * This method MUST return a string; if no path is present it MUST return the string "/".
-     *
-     * @return string
-     */
-    public function getUriPath()
-    {
-        $requestUri = urldecode($this->serverParams['request.uri']);
-
-        $requestScriptName = $this->serverParams['script.name']; // with base folder
-
-
-        if( strpos($requestUri, $requestScriptName) === 0 )
-        {
-            // no rewrite "/folder/index.php/route"
-
-            $requestUri = substr($requestUri, strlen($requestScriptName));
-        }
-        else
-        {
-            // remove base folder "'/folder/'index.php/route" or "'/folder/'route"
-
-            if( strpos($requestUri, $basePath = $this->getUriBasePath()) === 0 )
-            {
-                $requestUri = substr($requestUri, strlen($basePath));
-            }
-        }
-
-        return '/' . ltrim($requestUri, '/');
-    }
-
-    /**
-     * Get website's root uri ( //website/folder/ ) with ommiting http scheme
-     * 
-     * @return string
-     */
-    public function getUriRoot()
-    {
-        return '//' . $this->getUriAuthority() . $this->getUriBasePath();
-    }
-
-
-    /*******************************************************************************
-     * Server Params
-     ******************************************************************************/
-
-
-    /**
-     * Retrieve server parameters.
-     *
-     * Retrieves data related to the incoming request environment,
-     * typically derived from PHP's $_SERVER superglobal. The data IS NOT
-     * REQUIRED to originate from $_SERVER.
-     *
-     * @return array
-     */
-    public function getServerParams()
-    {
-        return $this->serverParams;
-    }
-
-
-    /*******************************************************************************
-     * Attributes
-     ******************************************************************************/
-
-
-    /**
-     * Retrieve attributes derived from the request.
-     * The request "attributes" may be used to pass parameters in middlewares
-     *
-     * @return array
-     */
-    public function getAttributes()
-    {
-        return $this->attributes->all();
-    }
-
-    /**
-     * Retrieve a single derived request attribute.
-     * If the attribute has not been previously set, returns the default value as provided.
-     *
-     * @param  string $name
-     * @param  mixed  $default
-     * @return mixed
-     */
-    public function getAttribute( $name, $default = null )
-    {
-        return $this->attributes->get($name, $default);
-    }
-
-    /**
-     * Allows setting a single derived request
-     *
-     * @see    getAttributes()
-     * @param  string $name The attribute name.
-     * @param  mixed  $value The value of the attribute.
-     * @return self
-     */
-    public function attribute( $name, $value )
-    {
-        $this->attributes->set($name, $value);
-
-        return $this;
-    }
-
-    /**
-     * Allows setting all new derived request attributes
-     *
-     * @param  array $attributes New attributes
-     * @return self
-     */
-    public function attributes( array $attributes )
-    {
-        $this->attributes = new Collection($attributes);
-
-        return $this;
-    }
-
-    /**
-     * Removing a single derived request attribute
-     *
-     * @param  string $name
-     * @return self
-     */
-    public function withoutAttribute( $name )
-    {
-        $this->attributes->remove($name);
-
-        return $this;
-    }
-
-
-    /*******************************************************************************
-     * Query Params
-     ******************************************************************************/
-
-
-
-    /**
-     * Retrieve query string arguments : the deserialized query string arguments, if any.
-     * aka $_GET
-     *
-     * @return array
-     */
-    public function getQueryParams()
-    {
-        $this->buildQueryParams();
-
-        return $this->queryParams;
-    }
-
-    /**
-     * Lazy-load: Build the query params and send them into their array
-     *
-     * @return array|null
-     * @throws RuntimeException
-     */
-    protected function buildQueryParams()
-    {
-        if( empty($this->queryParams) )
-        {
-            // parse query string 'x=x&y[]=y'
-
-            $queryString = urldecode($this->serverParams['query.string']);
-
-            parse_str($queryString, $this->queryParams); // send URL decodes in $queryParams
-        }
-    }
-
-    /**
-     * Retrieve a query parameter provided in the request body.
-     * aka $_GET
-     * 
-     * @param  string  $key
-     * @param  mixed   $default
-     * @return mixed
-     */
-    public function query( $key, $default = null )
-    {
-        $this->buildQueryParams();
-
-        return isset($this->queryParams[$key]) ? $this->queryParams[$key] : $default;
+        return null;
     }
 
 
     /*******************************************************************************
      * Body
      ******************************************************************************/
-
 
     /**
      * Gets the body of the message.
@@ -699,16 +644,15 @@ class Request implements RequestInterface
     }
 
     /**
-     * Lazy-load: Build the body params and send them into their array
+     * Lazy: Build the body params and send them into their array
      *
      * @return array|null
      * @throws RuntimeException
      */
-    protected function buildBodyParams()
+    protected function buildBodyParams() // todo revamp
     {
-        if( empty($this->bodyParams) && !empty($this->body) )
+        if( !isset($this->bodyParams) && isset($this->body) )
         {
-
             $mediaType = $this->getMediaType();
 
             if( isset($this->bodyParsers[$mediaType]) )
@@ -787,30 +731,6 @@ class Request implements RequestInterface
         {
             $this->bodyParsers[$type] = $callable;
         }
-    }
-
-
-    /*******************************************************************************
-     * Parameters (e.g., POST and GET data)
-     ******************************************************************************/
-
-
-    /**
-     * Fetch assocative array of body and query string parameters
-     *
-     * @return array
-     */
-    public function getParams()
-    {
-        $params = $this->getQueryParams();
-        $postParams = $this->getBodyParams();
-
-        if( $postParams )
-        {
-            $params = array_merge($params, (array)$postParams);
-        }
-
-        return $params;
     }
 
 
