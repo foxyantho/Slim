@@ -1,16 +1,18 @@
 <?php
 /**
- * Slim Framework (http://slimframework.com)
+ * Slim Framework (https://slimframework.com)
  *
- * @link      https://github.com/codeguy/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
- * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
+ * @link      https://github.com/slimphp/Slim
+ * @copyright Copyright (c) 2011-2017 Josh Lockhart
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 namespace Slim\Http;
 
-use Slim\Interfaces\Http\HeadersInterface;
+use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
+use Psr\Http\Message\UriInterface;
+use Slim\Interfaces\Http\HeadersInterface;
 
 /**
  * Response
@@ -20,17 +22,10 @@ use Psr\Http\Message\StreamInterface;
  * according to the PSR-7 standard.
  *
  * @link https://github.com/php-fig/http-message/blob/master/src/MessageInterface.php
- * @link https://github.com/php-fig/http-message/blob/master/src/RequestInterface.php
+ * @link https://github.com/php-fig/http-message/blob/master/src/ResponseInterface.php
  */
-class Response implements ResponseInterface
+class Response extends Message implements ResponseInterface
 {
-    /**
-     * Protocol version
-     *
-     * @var string
-     */
-    protected $protocolVersion = '1.1';
-
     /**
      * Status code
      *
@@ -39,18 +34,11 @@ class Response implements ResponseInterface
     protected $status = 200;
 
     /**
-     * Headers
+     * Reason phrase
      *
-     * @var \Slim\Interfaces\Http\HeadersInterface
+     * @var string
      */
-    protected $headers;
-
-    /**
-     * Body object
-     *
-     * @var \Psr\Http\Message\StreamInterface
-     */
-    protected $body;
+    protected $reasonPhrase = '';
 
     /**
      * Status codes and reason phrases
@@ -103,6 +91,7 @@ class Response implements ResponseInterface
         416 => 'Requested Range Not Satisfiable',
         417 => 'Expectation Failed',
         418 => 'I\'m a teapot',
+        421 => 'Misdirected Request',
         422 => 'Unprocessable Entity',
         423 => 'Locked',
         424 => 'Failed Dependency',
@@ -110,6 +99,9 @@ class Response implements ResponseInterface
         428 => 'Precondition Required',
         429 => 'Too Many Requests',
         431 => 'Request Header Fields Too Large',
+        444 => 'Connection Closed Without Response',
+        451 => 'Unavailable For Legal Reasons',
+        499 => 'Client Closed Request',
         //Server Error 5xx
         500 => 'Internal Server Error',
         501 => 'Not Implemented',
@@ -122,14 +114,22 @@ class Response implements ResponseInterface
         508 => 'Loop Detected',
         510 => 'Not Extended',
         511 => 'Network Authentication Required',
+        599 => 'Network Connect Timeout Error',
     ];
 
     /**
-     * Create new HTTP response
+     * EOL characters used for HTTP response.
      *
-     * @param int                      $status  The response status code
-     * @param HeadersInterface|null    $headers The response headers
-     * @param StreamInterface|null $body    The response body
+     * @var string
+     */
+     const EOL = "\r\n";
+
+    /**
+     * Create new HTTP response.
+     *
+     * @param int                   $status  The response status code.
+     * @param HeadersInterface|null $headers The response headers.
+     * @param StreamInterface|null  $body    The response body.
      */
     public function __construct($status = 200, HeadersInterface $headers = null, StreamInterface $body = null)
     {
@@ -147,58 +147,6 @@ class Response implements ResponseInterface
     public function __clone()
     {
         $this->headers = clone $this->headers;
-        $this->body = clone $this->body;
-    }
-
-    /**
-     * Disable magic setter to ensure immutability
-     */
-    public function __set($name, $value)
-    {
-        // Do nothing
-    }
-
-    /*******************************************************************************
-     * Protocol
-     ******************************************************************************/
-
-    /**
-     * Get HTTP protocol version
-     *
-     * @return string
-     */
-    public function getProtocolVersion()
-    {
-        return $this->protocolVersion;
-    }
-
-    /**
-     * Create a new instance with the specified HTTP protocol version.
-     *
-     * The version string MUST contain only the HTTP version number (e.g.,
-     * "1.1", "1.0").
-     *
-     * This method MUST be implemented in such a way as to retain the
-     * immutability of the message, and MUST return a new instance that has the
-     * new protocol version.
-     *
-     * @param  string $version HTTP protocol version
-     * @return self
-     */
-    public function withProtocolVersion($version)
-    {
-        static $valid = [
-            '1.0' => true,
-            '1.1' => true,
-            '2.0' => true,
-        ];
-        if (!isset($valid[$version])) {
-            throw new \InvalidArgumentException('Invalid HTTP version. Must be one of: 1.0, 1.1, 2.0');
-        }
-        $clone = clone $this;
-        $clone->protocolVersion = $version;
-
-        return $clone;
     }
 
     /*******************************************************************************
@@ -206,9 +154,9 @@ class Response implements ResponseInterface
      ******************************************************************************/
 
     /**
-     * Gets the response Status-Code.
+     * Gets the response status code.
      *
-     * The Status-Code is a 3-digit integer result code of the server's attempt
+     * The status code is a 3-digit integer result code of the server's attempt
      * to understand and satisfy the request.
      *
      * @return int Status code.
@@ -219,214 +167,86 @@ class Response implements ResponseInterface
     }
 
     /**
-     * Create a new instance with the specified status code, and optionally
-     * reason phrase, for the response.
+     * Return an instance with the specified status code and, optionally, reason phrase.
      *
-     * If no Reason-Phrase is specified, implementations MAY choose to default
+     * If no reason phrase is specified, implementations MAY choose to default
      * to the RFC 7231 or IANA recommended reason phrase for the response's
-     * Status-Code.
+     * status code.
      *
      * This method MUST be implemented in such a way as to retain the
-     * immutability of the message, and MUST return a new instance that has the
+     * immutability of the message, and MUST return an instance that has the
      * updated status and reason phrase.
      *
-     * @link  http://tools.ietf.org/html/rfc7231#section-6
-     * @link  http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
-     * @param integer     $code         The 3-digit integer result code to set.
-     * @param null|string $reasonPhrase The reason phrase to use with the
-     *                                  provided status code; if none is provided, implementations MAY
-     *                                  use the defaults as suggested in the HTTP specification.
-     * @return self
+     * @link http://tools.ietf.org/html/rfc7231#section-6
+     * @link http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+     * @param int $code The 3-digit integer result code to set.
+     * @param string $reasonPhrase The reason phrase to use with the
+     *     provided status code; if none is provided, implementations MAY
+     *     use the defaults as suggested in the HTTP specification.
+     * @return static
      * @throws \InvalidArgumentException For invalid status code arguments.
      */
-    public function withStatus($code, $reasonPhrase = null)
+    public function withStatus($code, $reasonPhrase = '')
     {
         $code = $this->filterStatus($code);
+
+        if (!is_string($reasonPhrase) && !method_exists($reasonPhrase, '__toString')) {
+            throw new InvalidArgumentException('ReasonPhrase must be a string');
+        }
+
         $clone = clone $this;
         $clone->status = $code;
-        // NOTE: We ignore custom reason phrases for now. Why? Because.
+        if ($reasonPhrase === '' && isset(static::$messages[$code])) {
+            $reasonPhrase = static::$messages[$code];
+        }
+
+        if ($reasonPhrase === '') {
+            throw new InvalidArgumentException('ReasonPhrase must be supplied for this code');
+        }
+
+        $clone->reasonPhrase = $reasonPhrase;
 
         return $clone;
     }
 
     /**
-     * Filter HTTP status code
+     * Filter HTTP status code.
      *
-     * @param  int $status HTTP status code
+     * @param  int $status HTTP status code.
      * @return int
-     * @throws \InvalidArgumentException If invalid HTTP status code
+     * @throws \InvalidArgumentException If an invalid HTTP status code is provided.
      */
     protected function filterStatus($status)
     {
-        if (!is_integer($status) || !isset(static::$messages[$status])) {
-            throw new \InvalidArgumentException('Invalid HTTP status code');
+        if (!is_integer($status) || $status<100 || $status>599) {
+            throw new InvalidArgumentException('Invalid HTTP status code');
         }
 
         return $status;
     }
 
     /**
-     * Gets the response Reason-Phrase, a short textual description of the Status-Code.
+     * Gets the response reason phrase associated with the status code.
      *
-     * Because a Reason-Phrase is not a required element in a response
-     * Status-Line, the Reason-Phrase value MAY be null. Implementations MAY
+     * Because a reason phrase is not a required element in a response
+     * status line, the reason phrase value MAY be null. Implementations MAY
      * choose to return the default RFC 7231 recommended reason phrase (or those
      * listed in the IANA HTTP Status Code Registry) for the response's
-     * Status-Code.
+     * status code.
      *
-     * @link   http://tools.ietf.org/html/rfc7231#section-6
-     * @link   http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
-     * @return string|null Reason phrase, or null if unknown.
+     * @link http://tools.ietf.org/html/rfc7231#section-6
+     * @link http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+     * @return string Reason phrase; must return an empty string if none present.
      */
     public function getReasonPhrase()
     {
-        return isset(static::$messages[$this->status]) ? static::$messages[$this->status] : null;
-    }
-
-    /*******************************************************************************
-     * Headers
-     ******************************************************************************/
-
-    /**
-     * Retrieves all message headers.
-     *
-     * The keys represent the header name as it will be sent over the wire, and
-     * each value is an array of strings associated with the header.
-     *
-     *     // Represent the headers as a string
-     *     foreach ($message->getHeaders() as $name => $values) {
-     *         echo $name . ": " . implode(", ", $values);
-     *     }
-     *
-     *     // Emit headers iteratively:
-     *     foreach ($message->getHeaders() as $name => $values) {
-     *         foreach ($values as $value) {
-     *             header(sprintf('%s: %s', $name, $value), false);
-     *         }
-     *     }
-     *
-     * While header names are not case-sensitive, getHeaders() will preserve the
-     * exact case in which headers were originally specified.
-     *
-     * @return array Returns an associative array of the message's headers. Each
-     *               key MUST be a header name, and each value MUST be an array of strings.
-     */
-    public function getHeaders()
-    {
-        return $this->headers->all();
-    }
-
-    /**
-     * Checks if a header exists by the given case-insensitive name.
-     *
-     * @param  string $name Case-insensitive header name.
-     * @return bool         Returns true if any header names match the given header
-     *                      name using a case-insensitive string comparison. Returns false if
-     *                      no matching header name is found in the message.
-     */
-    public function hasHeader($name)
-    {
-        return $this->headers->has($name);
-    }
-
-    /**
-     * Retrieves a header by the given case-insensitive name as an array of strings.
-     *
-     * @param  string   $name Case-insensitive header field name.
-     * @return string[]       An array of string values as provided for the given
-     *                        header. If the header does not appear in the message, 
-     *                        this method MUST return an empty array.
-     */
-    public function getHeader($name)
-    {
-        return $this->headers->get($name, []);
-    }
-
-    /**
-     * Retrieve a header by the given case-insensitive name, as a string.
-     *
-     * This method returns all of the header values of the given
-     * case-insensitive header name as a string concatenated together using
-     * a comma.
-     *
-     * NOTE: Not all header values may be appropriately represented using
-     * comma concatenation. For such headers, use getHeader instead
-     * and supply your own delimiter when concatenating.
-     *
-     * @param  string $name Case-insensitive header name.
-     * @return string
-     */
-    public function getHeaderLine($name)
-    {
-        return implode(',', $this->headers->get($name, []));
-    }  
-
-    /**
-     * Create a new instance with the provided header, replacing any existing
-     * values of any headers with the same case-insensitive name.
-     *
-     * While header names are case-insensitive, the casing of the header will
-     * be preserved by this function, and returned from getHeaders().
-     *
-     * This method MUST be implemented in such a way as to retain the
-     * immutability of the message, and MUST return a new instance that has the
-     * new and/or updated header and value.
-     *
-     * @param  string          $header Header name
-     * @param  string|string[] $value  Header value(s).
-     * @return self
-     */
-    public function withHeader($header, $value)
-    {
-        $clone = clone $this;
-        $clone->headers->set($header, $value);
-
-        return $clone;
-    }
-
-    /**
-     * Creates a new instance, with the specified header appended with the
-     * given value.
-     *
-     * Existing values for the specified header will be maintained. The new
-     * value(s) will be appended to the existing list. If the header did not
-     * exist previously, it will be added.
-     *
-     * This method MUST be implemented in such a way as to retain the
-     * immutability of the message, and MUST return a new instance that has the
-     * new header and/or value.
-     *
-     * @param  string          $header Header name to add
-     * @param  string|string[] $value  Header value(s).
-     * @return self
-     * @throws \InvalidArgumentException for invalid header names or values.
-     */
-    public function withAddedHeader($header, $value)
-    {
-        $clone = clone $this;
-        $clone->headers->add($header, $value);
-
-        return $clone;
-    }
-
-    /**
-     * Creates a new instance, without the specified header.
-     *
-     * Header resolution MUST be done without case-sensitivity.
-     *
-     * This method MUST be implemented in such a way as to retain the
-     * immutability of the message, and MUST return a new instance that removes
-     * the named header.
-     *
-     * @param  string $header HTTP header to remove
-     * @return self
-     */
-    public function withoutHeader($header)
-    {
-        $clone = clone $this;
-        $clone->headers->remove($header);
-
-        return $clone;
+        if ($this->reasonPhrase) {
+            return $this->reasonPhrase;
+        }
+        if (isset(static::$messages[$this->status])) {
+            return static::$messages[$this->status];
+        }
+        return '';
     }
 
     /*******************************************************************************
@@ -434,12 +254,14 @@ class Response implements ResponseInterface
      ******************************************************************************/
 
     /**
-     * Write data to the response body
+     * Write data to the response body.
+     *
+     * Note: This method is not part of the PSR-7 standard.
      *
      * Proxies to the underlying stream and writes the provided data to it.
      *
      * @param string $data
-     * @return self
+     * @return $this
      */
     public function write($data)
     {
@@ -448,36 +270,66 @@ class Response implements ResponseInterface
         return $this;
     }
 
+    /*******************************************************************************
+     * Response Helpers
+     ******************************************************************************/
+
     /**
-     * Gets the body of the message.
+     * Redirect.
      *
-     * @return StreamInterface Returns the body as a stream.
+     * Note: This method is not part of the PSR-7 standard.
+     *
+     * This method prepares the response object to return an HTTP Redirect
+     * response to the client.
+     *
+     * @param  string|UriInterface $url    The redirect destination.
+     * @param  int|null            $status The redirect HTTP status code.
+     * @return static
      */
-    public function getBody()
+    public function withRedirect($url, $status = null)
     {
-        return $this->body;
+        $responseWithRedirect = $this->withHeader('Location', (string)$url);
+
+        if (is_null($status) && $this->getStatusCode() === 200) {
+            $status = 302;
+        }
+
+        if (!is_null($status)) {
+            return $responseWithRedirect->withStatus($status);
+        }
+
+        return $responseWithRedirect;
     }
 
     /**
-     * Create a new instance, with the specified message body.
+     * Json.
      *
-     * The body MUST be a StreamInterface object.
+     * Note: This method is not part of the PSR-7 standard.
      *
-     * This method MUST be implemented in such a way as to retain the
-     * immutability of the message, and MUST return a new instance that has the
-     * new body stream.
+     * This method prepares the response object to return an HTTP Json
+     * response to the client.
      *
-     * @param  StreamInterface $body Body.
-     * @return self
-     * @throws \InvalidArgumentException When the body is not valid.
+     * @param  mixed  $data   The data
+     * @param  int    $status The HTTP status code.
+     * @param  int    $encodingOptions Json encoding options
+     * @throws \RuntimeException
+     * @return static
      */
-    public function withBody(StreamInterface $body)
+    public function withJson($data, $status = null, $encodingOptions = 0)
     {
-        // TODO: Test for invalid body?
-        $clone = clone $this;
-        $clone->body = $body;
+        $response = $this->withBody(new Body(fopen('php://temp', 'r+')));
+        $response->body->write($json = json_encode($data, $encodingOptions));
 
-        return $clone;
+        // Ensure that the json encoding passed successfully
+        if ($json === false) {
+            throw new \RuntimeException(json_last_error_msg(), json_last_error());
+        }
+
+        $responseWithJson = $response->withHeader('Content-Type', 'application/json;charset=utf-8');
+        if (isset($status)) {
+            return $responseWithJson->withStatus($status);
+        }
+        return $responseWithJson;
     }
 
     /*******************************************************************************
@@ -485,32 +337,21 @@ class Response implements ResponseInterface
      ******************************************************************************/
 
     /**
-     * Redirect
-     *
-     * This method prepares the response object to return an HTTP Redirect response
-     * to the client.
-     *
-     * @param  string $url    The redirect destination
-     * @param  int    $status The redirect HTTP status code
-     * @return self
-     */
-    public function withRedirect($url, $status = 302)
-    {
-        return $this->withStatus($status)->withHeader('Location', $url);
-    }
-
-    /**
      * Is this response empty?
+     *
+     * Note: This method is not part of the PSR-7 standard.
      *
      * @return bool
      */
     public function isEmpty()
     {
-        return in_array($this->getStatusCode(), [201, 204, 304]);
+        return in_array($this->getStatusCode(), [204, 205, 304]);
     }
 
     /**
      * Is this response informational?
+     *
+     * Note: This method is not part of the PSR-7 standard.
      *
      * @return bool
      */
@@ -522,6 +363,8 @@ class Response implements ResponseInterface
     /**
      * Is this response OK?
      *
+     * Note: This method is not part of the PSR-7 standard.
+     *
      * @return bool
      */
     public function isOk()
@@ -531,6 +374,8 @@ class Response implements ResponseInterface
 
     /**
      * Is this response successful?
+     *
+     * Note: This method is not part of the PSR-7 standard.
      *
      * @return bool
      */
@@ -542,6 +387,8 @@ class Response implements ResponseInterface
     /**
      * Is this response a redirect?
      *
+     * Note: This method is not part of the PSR-7 standard.
+     *
      * @return bool
      */
     public function isRedirect()
@@ -552,6 +399,8 @@ class Response implements ResponseInterface
     /**
      * Is this response a redirection?
      *
+     * Note: This method is not part of the PSR-7 standard.
+     *
      * @return bool
      */
     public function isRedirection()
@@ -561,6 +410,8 @@ class Response implements ResponseInterface
 
     /**
      * Is this response forbidden?
+     *
+     * Note: This method is not part of the PSR-7 standard.
      *
      * @return bool
      * @api
@@ -573,6 +424,8 @@ class Response implements ResponseInterface
     /**
      * Is this response not Found?
      *
+     * Note: This method is not part of the PSR-7 standard.
+     *
      * @return bool
      */
     public function isNotFound()
@@ -582,6 +435,8 @@ class Response implements ResponseInterface
 
     /**
      * Is this response a client error?
+     *
+     * Note: This method is not part of the PSR-7 standard.
      *
      * @return bool
      */
@@ -593,6 +448,8 @@ class Response implements ResponseInterface
     /**
      * Is this response a server error?
      *
+     * Note: This method is not part of the PSR-7 standard.
+     *
      * @return bool
      */
     public function isServerError()
@@ -601,7 +458,9 @@ class Response implements ResponseInterface
     }
 
     /**
-     * Convert response to string
+     * Convert response to string.
+     *
+     * Note: This method is not part of the PSR-7 standard.
      *
      * @return string
      */
@@ -613,11 +472,11 @@ class Response implements ResponseInterface
             $this->getStatusCode(),
             $this->getReasonPhrase()
         );
-        $output .= PHP_EOL;
+        $output .= Response::EOL;
         foreach ($this->getHeaders() as $name => $values) {
-            $output .= sprintf('%s: %s', $name, $this->getHeaderLine($name)) . PHP_EOL;
+            $output .= sprintf('%s: %s', $name, $this->getHeaderLine($name)) . Response::EOL;
         }
-        $output .= PHP_EOL;
+        $output .= Response::EOL;
         $output .= (string)$this->getBody();
 
         return $output;

@@ -1,114 +1,145 @@
 <?php
 /**
- * Slim - a micro PHP 5 framework
+ * Slim Framework (https://slimframework.com)
  *
- * @author      Josh Lockhart <info@slimframework.com>
- * @copyright   2011 Josh Lockhart
- * @link        http://www.slimframework.com
- * @license     http://www.slimframework.com/license
- * @version     2.3.5
- *
- * MIT LICENSE
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * @link      https://github.com/slimphp/Slim
+ * @copyright Copyright (c) 2011-2017 Josh Lockhart
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
+namespace Slim\Tests;
 
 use Slim\CallableResolver;
 use Slim\Container;
+use Slim\Tests\Mocks\CallableTest;
+use Slim\Tests\Mocks\InvokableTest;
 
-class CallableTest
+class CallableResolverTest extends \PHPUnit_Framework_TestCase
 {
-    public static $CalledCount = 0;
-    public function toCall()
-    {
-        return static::$CalledCount++;
-    }
-}
-
-class CallableResolverTest extends PHPUnit_Framework_TestCase
-{
+    /**
+     * @var Container
+     */
+    private $container;
 
     public function setUp()
     {
         CallableTest::$CalledCount = 0;
+        InvokableTest::$CalledCount = 0;
         $this->container = new Container();
     }
 
     public function testClosure()
     {
-        $test_callable = function() {
+        $test = function () {
             static $called_count = 0;
             return $called_count++;
         };
-        $resolver = new CallableResolver($test_callable, $this->container);
-        $resolver();
-        $this->assertEquals(1, $test_callable());
+        $resolver = new CallableResolver($this->container);
+        $callable = $resolver->resolve($test);
+        $callable();
+        $this->assertEquals(1, $callable());
     }
 
     public function testFunctionName()
     {
-        function test_callable()
+        // @codingStandardsIgnoreStart
+        function testCallable()
         {
             static $called_count = 0;
             return $called_count++;
         };
-        $resolver = new CallableResolver('test_callable', $this->container);
-        $resolver();
-        $this->assertEquals(1, test_callable());
+        // @codingStandardsIgnoreEnd
+
+        $resolver = new CallableResolver($this->container);
+        $callable = $resolver->resolve(__NAMESPACE__ . '\testCallable');
+        $callable();
+        $this->assertEquals(1, $callable());
     }
 
     public function testObjMethodArray()
     {
         $obj = new CallableTest();
-        $resolver = new CallableResolver([$obj, 'toCall'], $this->container);
-        $resolver();
+        $resolver = new CallableResolver($this->container);
+        $callable = $resolver->resolve([$obj, 'toCall']);
+        $callable();
         $this->assertEquals(1, CallableTest::$CalledCount);
     }
 
     public function testSlimCallable()
     {
-        $resolver = new CallableResolver('CallableTest:toCall', $this->container);
-        $resolver();
+        $resolver = new CallableResolver($this->container);
+        $callable = $resolver->resolve('Slim\Tests\Mocks\CallableTest:toCall');
+        $callable();
         $this->assertEquals(1, CallableTest::$CalledCount);
+    }
+
+    public function testSlimCallableContainer()
+    {
+        $resolver = new CallableResolver($this->container);
+        $resolver->resolve('Slim\Tests\Mocks\CallableTest:toCall');
+        $this->assertEquals($this->container, CallableTest::$CalledContainer);
     }
 
     public function testContainer()
     {
         $this->container['callable_service'] = new CallableTest();
-        $resolver = new CallableResolver('callable_service:toCall', $this->container);
-        $resolver();
+        $resolver = new CallableResolver($this->container);
+        $callable = $resolver->resolve('callable_service:toCall');
+        $callable();
         $this->assertEquals(1, CallableTest::$CalledCount);
+    }
+
+    public function testResolutionToAnInvokableClassInContainer()
+    {
+        $this->container['an_invokable'] = function ($c) {
+            return new InvokableTest();
+        };
+        $resolver = new CallableResolver($this->container);
+        $callable = $resolver->resolve('an_invokable');
+        $callable();
+        $this->assertEquals(1, InvokableTest::$CalledCount);
+    }
+
+    public function testResolutionToAnInvokableClass()
+    {
+        $resolver = new CallableResolver($this->container);
+        $callable = $resolver->resolve('Slim\Tests\Mocks\InvokableTest');
+        $callable();
+        $this->assertEquals(1, InvokableTest::$CalledCount);
     }
 
     public function testMethodNotFoundThrowException()
     {
         $this->container['callable_service'] = new CallableTest();
-        $resolver = new CallableResolver('callable_service:noFound', $this->container);
+        $resolver = new CallableResolver($this->container);
         $this->setExpectedException('\RuntimeException');
-        $resolver();
+        $resolver->resolve('callable_service:noFound');
     }
 
     public function testFunctionNotFoundThrowException()
     {
-        $resolver = new CallableResolver('noFound', $this->container);
+        $resolver = new CallableResolver($this->container);
         $this->setExpectedException('\RuntimeException');
-        $resolver();
+        $resolver->resolve('noFound');
+    }
+
+    public function testClassNotFoundThrowException()
+    {
+        $resolver = new CallableResolver($this->container);
+        $this->setExpectedException('\RuntimeException', 'Callable Unknown does not exist');
+        $resolver->resolve('Unknown:notFound');
+    }
+
+    public function testCallableClassNotFoundThrowException()
+    {
+        $resolver = new CallableResolver($this->container);
+        $this->setExpectedException('\RuntimeException', 'is not resolvable');
+        $resolver->resolve(['Unknown', 'notFound']);
+    }
+
+    public function testCallableInvalidTypeThrowException()
+    {
+        $resolver = new CallableResolver($this->container);
+        $this->setExpectedException('\RuntimeException', 'is not resolvable');
+        $resolver->resolve(__LINE__);
     }
 }

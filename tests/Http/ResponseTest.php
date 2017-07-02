@@ -1,17 +1,17 @@
 <?php
 /**
- * Slim Framework (http://slimframework.com)
+ * Slim Framework (https://slimframework.com)
  *
- * @link      https://github.com/codeguy/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
- * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
+ * @link      https://github.com/slimphp/Slim
+ * @copyright Copyright (c) 2011-2017 Josh Lockhart
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 namespace Slim\Tests\Http;
 
-use Slim\Http\Response;
-use Slim\Http\Headers;
-use Slim\Http\Cookies;
+use ReflectionProperty;
 use Slim\Http\Body;
+use Slim\Http\Headers;
+use Slim\Http\Response;
 
 class ResponseTest extends \PHPUnit_Framework_TestCase
 {
@@ -49,7 +49,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
         $this->assertAttributeEquals('1.1', 'protocolVersion', $clone);
         $this->assertAttributeEquals(404, 'status', $clone);
         $this->assertAttributeNotSame($headers, 'headers', $clone);
-        $this->assertAttributeNotSame($body, 'body', $clone);
+        $this->assertAttributeSame($body, 'body', $clone);
     }
 
     public function testDisableSetter()
@@ -61,44 +61,13 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     }
 
     /*******************************************************************************
-     * Protocol
-     ******************************************************************************/
-
-    public function testGetProtocolVersion()
-    {
-        $response = new Response();
-        $responseProto = new \ReflectionProperty($response, 'protocolVersion');
-        $responseProto->setAccessible(true);
-        $responseProto->setValue($response, '1.0');
-
-        $this->assertEquals('1.0', $response->getProtocolVersion());
-    }
-
-    public function testWithProtocolVersion()
-    {
-        $response = new Response();
-        $clone = $response->withProtocolVersion('1.0');
-
-        $this->assertAttributeEquals('1.0', 'protocolVersion', $clone);
-    }
-
-    /**
-     * @expectedException \InvalidArgumentException
-     */
-    public function testWithProtocolVersionInvalid()
-    {
-        $response = new Response();
-        $clone = $response->withProtocolVersion('3.0');
-    }
-
-    /*******************************************************************************
      * Status
      ******************************************************************************/
 
     public function testGetStatusCode()
     {
         $response = new Response();
-        $responseStatus = new \ReflectionProperty($response, 'status');
+        $responseStatus = new ReflectionProperty($response, 'status');
         $responseStatus->setAccessible(true);
         $responseStatus->setValue($response, '404');
 
@@ -116,133 +85,86 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     /**
      * @expectedException \InvalidArgumentException
      */
-    public function testWithStatusInvalid()
+    public function testWithStatusInvalidStatusCodeThrowsException()
     {
         $response = new Response();
-        $clone = $response->withStatus(800);
+        $response->withStatus(800);
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage ReasonPhrase must be a string
+     */
+    public function testWithStatusInvalidReasonPhraseThrowsException()
+    {
+        $response = new Response();
+        $response->withStatus(200, null);
+    }
+
+    public function testWithStatusEmptyReasonPhrase()
+    {
+        $responseWithNoMessage = new Response(310);
+
+        $this->assertEquals('', $responseWithNoMessage->getReasonPhrase());
     }
 
     public function testGetReasonPhrase()
     {
-        $response = new Response();
-        $responseStatus = new \ReflectionProperty($response, 'status');
-        $responseStatus->setAccessible(true);
-        $responseStatus->setValue($response, '404');
+        $response = new Response(404);
 
         $this->assertEquals('Not Found', $response->getReasonPhrase());
     }
 
-    /*******************************************************************************
-     * Headers
-     ******************************************************************************/
-
-    public function testGetHeaders()
+    /**
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage ReasonPhrase must be supplied for this code
+     */
+    public function testMustSetReasonPhraseForUnrecognisedCode()
     {
-        $headers = new Headers();
-        $headers->add('X-Foo', 'one');
-        $headers->add('X-Foo', 'two');
-        $headers->add('X-Foo', 'three');
-        $response = new Response(200, $headers);
-        $shouldBe = [
-            'X-Foo' => [
-                'one',
-                'two',
-                'three',
-            ],
-        ];
-        $this->assertEquals($shouldBe, $response->getHeaders());
+        $response = new Response();
+        $response = $response->withStatus(199);
     }
 
-    public function testHasHeader()
+    public function testSetReasonPhraseForUnrecognisedCode()
     {
-        $headers = new Headers();
-        $headers->add('X-Foo', 'one');
-        $response = new Response(200, $headers);
+        $response = new Response();
+        $response = $response->withStatus(199, 'Random Message');
 
-        $this->assertTrue($response->hasHeader('X-Foo'));
-        $this->assertFalse($response->hasHeader('X-Bar'));
+        $this->assertEquals('Random Message', $response->getReasonPhrase());
     }
 
-    public function testGetHeaderLine()
+    public function testGetCustomReasonPhrase()
     {
-        $headers = new Headers();
-        $headers->add('X-Foo', 'one');
-        $headers->add('X-Foo', 'two');
-        $headers->add('X-Foo', 'three');
-        $response = new Response(200, $headers);
+        $response = new Response();
+        $clone = $response->withStatus(200, 'Custom Phrase');
 
-        $this->assertEquals('one,two,three', $response->getHeaderLine('X-Foo'));
-        $this->assertEquals('', $response->getHeaderLine('X-Bar'));
+        $this->assertEquals('Custom Phrase', $clone->getReasonPhrase());
     }
 
-    public function testGetHeader()
+    /**
+     * @covers Slim\Http\Response::withRedirect
+     */
+    public function testWithRedirect()
     {
-        $headers = new Headers();
-        $headers->add('X-Foo', 'one');
-        $headers->add('X-Foo', 'two');
-        $headers->add('X-Foo', 'three');
-        $response = new Response(200, $headers);
+        $response = new Response(200);
+        $clone = $response->withRedirect('/foo', 301);
+        $cloneWithDefaultStatus = $response->withRedirect('/foo');
+        $cloneWithStatusMethod = $response->withStatus(301)->withRedirect('/foo');
 
-        $this->assertEquals(['one', 'two', 'three'], $response->getHeader('X-Foo'));
-        $this->assertEquals([], $response->getHeader('X-Bar'));
-    }
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertFalse($response->hasHeader('Location'));
 
-    public function testWithHeader()
-    {
-        $headers = new Headers();
-        $headers->add('X-Foo', 'one');
-        $response = new Response(200, $headers);
-        $clone = $response->withHeader('X-Foo', 'bar');
+        $this->assertSame(301, $clone->getStatusCode());
+        $this->assertTrue($clone->hasHeader('Location'));
+        $this->assertEquals('/foo', $clone->getHeaderLine('Location'));
 
-        $this->assertEquals('bar', $clone->getHeaderLine('X-Foo'));
-    }
+        $this->assertSame(302, $cloneWithDefaultStatus->getStatusCode());
+        $this->assertTrue($cloneWithDefaultStatus->hasHeader('Location'));
+        $this->assertEquals('/foo', $cloneWithDefaultStatus->getHeaderLine('Location'));
 
-    public function testWithAddedHeader()
-    {
-        $headers = new Headers();
-        $headers->add('X-Foo', 'one');
-        $response = new Response(200, $headers);
-        $clone = $response->withAddedHeader('X-Foo', 'two');
-
-        $this->assertEquals('one,two', $clone->getHeaderLine('X-Foo'));
-    }
-
-    public function testWithoutHeader()
-    {
-        $headers = new Headers();
-        $headers->add('X-Foo', 'one');
-        $headers->add('X-Bar', 'two');
-        $response = new Response(200, $headers);
-        $clone = $response->withoutHeader('X-Foo');
-        $shouldBe = [
-            'X-Bar' => ['two'],
-        ];
-
-        $this->assertEquals($shouldBe, $clone->getHeaders());
-    }
-
-    /*******************************************************************************
-     * Body
-     ******************************************************************************/
-
-    public function testGetBody()
-    {
-        $headers = new Headers();
-        $body = new Body(fopen('php://temp', 'r+'));
-        $response = new Response(404, $headers, $body);
-
-        $this->assertSame($body, $response->getBody());
-    }
-
-    public function testWithBody()
-    {
-        $headers = new Headers();
-        $body = new Body(fopen('php://temp', 'r+'));
-        $body2 = new Body(fopen('php://temp', 'r+'));
-        $response = new Response(404, $headers, $body);
-        $clone = $response->withBody($body2);
-
-        $this->assertAttributeSame($body2, 'body', $clone);
+        $this->assertSame(301, $cloneWithStatusMethod->getStatusCode());
+        $this->assertTrue($cloneWithStatusMethod->hasHeader('Location'));
+        $this->assertEquals('/foo', $cloneWithStatusMethod->getHeaderLine('Location'));
     }
 
     /*******************************************************************************
@@ -252,9 +174,9 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsEmpty()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
-        $prop->setValue($response, 201);
+        $prop->setValue($response, 204);
 
         $this->assertTrue($response->isEmpty());
     }
@@ -262,7 +184,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsInformational()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 100);
 
@@ -272,7 +194,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsOk()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 200);
 
@@ -282,7 +204,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsSuccessful()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 201);
 
@@ -292,7 +214,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsRedirect()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 302);
 
@@ -302,7 +224,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsRedirection()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 308);
 
@@ -312,7 +234,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsForbidden()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 403);
 
@@ -322,7 +244,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsNotFound()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 404);
 
@@ -332,7 +254,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsClientError()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 400);
 
@@ -342,7 +264,7 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
     public function testIsServerError()
     {
         $response = new Response();
-        $prop = new \ReflectionProperty($response, 'status');
+        $prop = new ReflectionProperty($response, 'status');
         $prop->setAccessible(true);
         $prop->setValue($response, 503);
 
@@ -351,16 +273,68 @@ class ResponseTest extends \PHPUnit_Framework_TestCase
 
     public function testToString()
     {
-        $output = <<<END
-HTTP/1.1 404 Not Found
-X-Foo: Bar
-
-Where am I?
-END;
+        $output = 'HTTP/1.1 404 Not Found' . Response::EOL .
+                  'X-Foo: Bar' . Response::EOL . Response::EOL .
+                  'Where am I?';
         $this->expectOutputString($output);
         $response = new Response();
         $response = $response->withStatus(404)->withHeader('X-Foo', 'Bar')->write('Where am I?');
 
         echo $response;
+    }
+
+    public function testWithJson()
+    {
+        $data = ['foo' => 'bar1&bar2'];
+
+        $originalResponse = new Response();
+        $response = $originalResponse->withJson($data, 201);
+
+        $this->assertNotEquals($response->getStatusCode(), $originalResponse->getStatusCode());
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertEquals('application/json;charset=utf-8', $response->getHeaderLine('Content-Type'));
+
+        $body = $response->getBody();
+        $body->rewind();
+        $dataJson = $body->getContents(); //json_decode($body->getContents(), true);
+
+        $originalBody = $originalResponse->getBody();
+        $originalBody->rewind();
+        $originalContents = $originalBody->getContents();
+
+        // test the original body hasn't be replaced
+        $this->assertNotEquals($dataJson, $originalContents);
+
+        $this->assertEquals('{"foo":"bar1&bar2"}', $dataJson);
+        $this->assertEquals($data['foo'], json_decode($dataJson, true)['foo']);
+
+        // Test encoding option
+        $response = $response->withJson($data, 200, JSON_HEX_AMP);
+
+        $body = $response->getBody();
+        $body->rewind();
+        $dataJson = $body->getContents();
+
+        $this->assertEquals('{"foo":"bar1\u0026bar2"}', $dataJson);
+        $this->assertEquals($data['foo'], json_decode($dataJson, true)['foo']);
+
+        $response = $response->withStatus(201)->withJson([]);
+        $this->assertEquals($response->getStatusCode(), 201);
+    }
+
+    /**
+     * @expectedException \RuntimeException
+     */
+    public function testWithInvalidJsonThrowsException()
+    {
+        $data = ['foo' => 'bar'.chr(233)];
+        $this->assertEquals('bar'.chr(233), $data['foo']);
+
+        $response = new Response();
+        $response->withJson($data, 200);
+
+        // Safety net: this assertion should not occur, since the RuntimeException
+        // must have been caught earlier by the test framework
+        $this->assertFalse(true);
     }
 }

@@ -1,13 +1,14 @@
 <?php
 /**
- * Slim Framework (http://slimframework.com)
+ * Slim Framework (https://slimframework.com)
  *
- * @link      https://github.com/codeguy/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
- * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
+ * @link      https://github.com/slimphp/Slim
+ * @copyright Copyright (c) 2011-2017 Josh Lockhart
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 namespace Slim\Http;
 
+use InvalidArgumentException;
 use Slim\Interfaces\Http\CookiesInterface;
 
 /**
@@ -37,6 +38,7 @@ class Cookies implements CookiesInterface
     protected $defaults = [
         'value' => '',
         'domain' => null,
+        'hostonly' => null,
         'path' => null,
         'expires' => null,
         'secure' => false,
@@ -69,7 +71,7 @@ class Cookies implements CookiesInterface
      * @param  string $name    Cookie name
      * @param  mixed  $default Cookie default value
      *
-     * @return mixed  Cookie value if present, else default
+     * @return mixed Cookie value if present, else default
      */
     public function get($name, $default = null)
     {
@@ -140,6 +142,10 @@ class Cookies implements CookiesInterface
             $result .= '; secure';
         }
 
+        if (isset($properties['hostonly']) && $properties['hostonly']) {
+            $result .= '; HostOnly';
+        }
+
         if (isset($properties['httponly']) && $properties['httponly']) {
             $result .= '; HttpOnly';
         }
@@ -152,7 +158,10 @@ class Cookies implements CookiesInterface
      * into a PHP associative array.
      *
      * @param  string $header The raw HTTP request `Cookie:` header
-     * @return array          Associative array of cookie names and values
+     *
+     * @return array Associative array of cookie names and values
+     *
+     * @throws InvalidArgumentException if the cookie data cannot be parsed
      */
     public static function parseHeader($header)
     {
@@ -161,11 +170,11 @@ class Cookies implements CookiesInterface
         }
 
         if (is_string($header) === false) {
-            throw new \InvalidArgumentException('Cannot parse Cookie data. Header value must be a string.');
+            throw new InvalidArgumentException('Cannot parse Cookie data. Header value must be a string.');
         }
 
         $header = rtrim($header, "\r\n");
-        $pieces = preg_split('@\s*[;,]\s*@', $header);
+        $pieces = preg_split('@[;]\s*@', $header);
         $cookies = [];
 
         foreach ($pieces as $cookie) {

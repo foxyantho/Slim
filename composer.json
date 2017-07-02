@@ -3,7 +3,7 @@
     "type": "library",
     "description": "Slim is a PHP micro framework that helps you quickly write simple yet powerful web applications and APIs",
     "keywords": ["framework","micro","api","router"],
-    "homepage": "http://slimframework.com",
+    "homepage": "https://slimframework.com",
     "license": "MIT",
     "authors": [
         {
@@ -13,7 +13,13 @@
         },
         {
             "name": "Andrew Smith",
+            "email": "a.smith@silentworks.co.uk",
             "homepage": "http://silentworks.co.uk"
+        },
+        {
+            "name": "Rob Allen",
+            "email": "rob@akrabat.com",
+            "homepage": "http://akrabat.com"
         },
         {
             "name": "Gabriel Manricks",
@@ -22,24 +28,31 @@
         }
     ],
     "require": {
-        "php": ">=5.4.0",
-        "pimple/pimple": "3.*",
-        "psr/http-message": "~0.8",
-        "nikic/fast-route": "~0.4",
-        "container-interop/container-interop": "~1.1"
+        "php": ">=5.5.0",
+        "pimple/pimple": "^3.0",
+        "psr/http-message": "^1.0",
+        "nikic/fast-route": "^1.0",
+        "container-interop/container-interop": "^1.2",
+        "psr/container": "^1.0"
     },
     "require-dev": {
-        "mockery/mockery": "dev-master@dev",
-        "phpunit/phpunit": "*"
+        "squizlabs/php_codesniffer": "^2.5",
+        "phpunit/phpunit": "^4.0"
+    },
+    "provide": {
+        "psr/http-message-implementation": "1.0"
     },
     "autoload": {
-        "psr-0": {
-            "Slim": "."
+        "psr-4": {
+            "Slim\\": "Slim"
         }
     },
-    "extra": {
-        "branch-alias": {
-            "dev-develop": "3.0.x-dev"
-        }
+    "scripts": {
+        "test": [
+            "@phpunit",
+            "@phpcs"
+        ],
+        "phpunit": "php vendor/bin/phpunit",
+        "phpcs": "php vendor/bin/phpcs"
     }
 }

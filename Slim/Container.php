@@ -1,27 +1,48 @@
 <?php
+/**
+ * Slim Framework (https://slimframework.com)
+ *
+ * @link      https://github.com/slimphp/Slim
+ * @copyright Copyright (c) 2011-2017 Josh Lockhart
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
+ */
 namespace Slim;
 
 use Interop\Container\ContainerInterface;
-use Slim\Exception\NotFoundException;
+use Interop\Container\Exception\ContainerException;
 use Pimple\Container as PimpleContainer;
+use Slim\Exception\ContainerValueNotFoundException;
+use Slim\Exception\ContainerException as SlimContainerException;
 
 /**
  * Slim's default DI container is Pimple.
  *
- * Slim\App expect a container that implements Interop\Container\ContainerInterface
+ * Slim\App expects a container that implements Psr\Container\ContainerInterface
  * with these service keys configured and ready for use:
  *
  *  - settings: an array or instance of \ArrayAccess
  *  - environment: an instance of \Slim\Interfaces\Http\EnvironmentInterface
- *  - request: an instance of \Psr\Http\Message\RequestInterface
+ *  - request: an instance of \Psr\Http\Message\ServerRequestInterface
  *  - response: an instance of \Psr\Http\Message\ResponseInterface
  *  - router: an instance of \Slim\Interfaces\RouterInterface
+ *  - foundHandler: an instance of \Slim\Interfaces\InvocationStrategyInterface
  *  - errorHandler: a callable with the signature: function($request, $response, $exception)
  *  - notFoundHandler: a callable with the signature: function($request, $response)
  *  - notAllowedHandler: a callable with the signature: function($request, $response, $allowedHttpMethods)
+ *  - callableResolver: an instance of \Slim\Interfaces\CallableResolverInterface
  *
+ * @property-read array settings
+ * @property-read \Slim\Interfaces\Http\EnvironmentInterface environment
+ * @property-read \Psr\Http\Message\ServerRequestInterface request
+ * @property-read \Psr\Http\Message\ResponseInterface response
+ * @property-read \Slim\Interfaces\RouterInterface router
+ * @property-read \Slim\Interfaces\InvocationStrategyInterface foundHandler
+ * @property-read callable errorHandler
+ * @property-read callable notFoundHandler
+ * @property-read callable notAllowedHandler
+ * @property-read \Slim\Interfaces\CallableResolverInterface callableResolver
  */
-final class Container extends PimpleContainer implements ContainerInterface
+class Container extends PimpleContainer implements ContainerInterface
 {
     /**
      * Default settings
@@ -29,128 +50,58 @@ final class Container extends PimpleContainer implements ContainerInterface
      * @var array
      */
     private $defaultSettings = [
-        'cookieLifetime' => '20 minutes',
-        'cookiePath' => '/',
-        'cookieDomain' => null,
-        'cookieSecure' => false,
-        'cookieHttpOnly' => false,
         'httpVersion' => '1.1',
-        'responseChunkSize' => 4096
+        'responseChunkSize' => 4096,
+        'outputBuffering' => 'append',
+        'determineRouteBeforeAppMiddleware' => false,
+        'displayErrorDetails' => false,
+        'addContentLengthHeader' => true,
+        'routerCacheFile' => false,
     ];
-
-
-    /********************************************************************************
-     * Constructor sets up default Pimple services
-     *******************************************************************************/
 
     /**
      * Create new container
      *
-     * @param array $userSettings Associative array of application settings
+     * @param array $values The parameters or objects.
      */
-    public function __construct(array $userSettings = [])
+    public function __construct(array $values = [])
     {
-        parent::__construct();
+        parent::__construct($values);
+
+        $userSettings = isset($values['settings']) ? $values['settings'] : [];
+        $this->registerDefaultServices($userSettings);
+    }
+
+    /**
+     * This function registers the default services that Slim needs to work.
+     *
+     * All services are shared - that is, they are registered such that the
+     * same instance is returned on subsequent calls.
+     *
+     * @param array $userSettings Associative array of application settings
+     *
+     * @return void
+     */
+    private function registerDefaultServices($userSettings)
+    {
+        $defaultSettings = $this->defaultSettings;
 
         /**
          * This service MUST return an array or an
          * instance of \ArrayAccess.
+         *
+         * @return array|\ArrayAccess
          */
-        $defaultSettings = $this->defaultSettings;
-        $this['settings'] = function ($c) use ($userSettings, $defaultSettings) {
-            return array_merge($defaultSettings, $userSettings);
+        $this['settings'] = function () use ($userSettings, $defaultSettings) {
+            return new Collection(array_merge($defaultSettings, $userSettings));
         };
 
-        /**
-         * This service MUST return a shared instance
-         * of \Slim\Interfaces\Http\EnvironmentInterface.
-         */
-        $this['environment'] = function ($c) {
-            return new Http\Environment($_SERVER);
-        };
-
-        /**
-         * This service MUST return a NEW instance
-         * of \Psr\Http\Message\RequestInterface.
-         */
-        $this['request'] = $this->factory(function ($c) {
-            $env = $c['environment'];
-            $method = $env['REQUEST_METHOD'];
-            $uri = Http\Uri::createFromEnvironment($env);
-            $headers = Http\Headers::createFromEnvironment($env);
-            $cookies = Http\Cookies::parseHeader($headers->get('Cookie', []));
-            $serverParams = $env->all();
-            $body = new Http\Body(fopen('php://input', 'r'));
-
-            return new Http\Request($method, $uri, $headers, $cookies, $serverParams, $body);
-        });
-
-        /**
-         * This service MUST return a NEW instance
-         * of \Psr\Http\Message\ResponseInterface.
-         */
-        $this['response'] = $this->factory(function ($c) {
-            $headers = new Http\Headers(['Content-Type' => 'text/html']);
-            $response = new Http\Response(200, $headers);
-
-            return $response->withProtocolVersion($c['settings']['httpVersion']);
-        });
-
-        /**
-         * This service MUST return a SHARED instance
-         * of \Slim\Interfaces\RouterInterface.
-         */
-        $this['router'] = function ($c) {
-            return new Router();
-        };
-
-        /**
-         * This service MUST return a callable
-         * that accepts three arguments:
-         *
-         * 1. Instance of \Psr\Http\Message\RequestInterface
-         * 2. Instance of \Psr\Http\Message\ResponseInterface
-         * 3. Instance of \Exception
-         *
-         * The callable MUST return an instance of
-         * \Psr\Http\Message\ResponseInterface.
-         */
-        $this['errorHandler'] = function ($c) {
-            return new Handlers\Error;
-        };
-
-        /**
-         * This service MUST return a callable
-         * that accepts two arguments:
-         *
-         * 1. Instance of \Psr\Http\Message\RequestInterface
-         * 2. Instance of \Psr\Http\Message\ResponseInterface
-         *
-         * The callable MUST return an instance of
-         * \Psr\Http\Message\ResponseInterface.
-         */
-        $this['notFoundHandler'] = function ($c) {
-            return new Handlers\NotFound;
-        };
-
-        /**
-         * This service MUST return a callable
-         * that accepts three arguments:
-         *
-         * 1. Instance of \Psr\Http\Message\RequestInterface
-         * 2. Instance of \Psr\Http\Message\ResponseInterface
-         * 3. Array of allowed HTTP methods
-         *
-         * The callable MUST return an instance of
-         * \Psr\Http\Message\ResponseInterface.
-         */
-        $this['notAllowedHandler'] = function ($c) {
-            return new Handlers\NotAllowed;
-        };
+        $defaultProvider = new DefaultServicesProvider();
+        $defaultProvider->register($this);
     }
 
     /********************************************************************************
-     * Methods to satisfy Interop\Container\ContainerInterface
+     * Methods to satisfy Psr\Container\ContainerInterface
      *******************************************************************************/
 
     /**
@@ -158,17 +109,44 @@ final class Container extends PimpleContainer implements ContainerInterface
      *
      * @param string $id Identifier of the entry to look for.
      *
-     * @throws NotFoundException  No entry was found for this identifier.
-     * @throws ContainerException Error while retrieving the entry.
+     * @throws ContainerValueNotFoundException  No entry was found for this identifier.
+     * @throws ContainerException               Error while retrieving the entry.
      *
      * @return mixed Entry.
      */
     public function get($id)
     {
         if (!$this->offsetExists($id)) {
-            throw new NotFoundException(sprintf('Identifier "%s" is not defined.', $id));
+            throw new ContainerValueNotFoundException(sprintf('Identifier "%s" is not defined.', $id));
         }
-        return $this->offsetGet($id);
+        try {
+            return $this->offsetGet($id);
+        } catch (\InvalidArgumentException $exception) {
+            if ($this->exceptionThrownByContainer($exception)) {
+                throw new SlimContainerException(
+                    sprintf('Container error while retrieving "%s"', $id),
+                    null,
+                    $exception
+                );
+            } else {
+                throw $exception;
+            }
+        }
+    }
+
+    /**
+     * Tests whether an exception needs to be recast for compliance with Container-Interop.  This will be if the
+     * exception was thrown by Pimple.
+     *
+     * @param \InvalidArgumentException $exception
+     *
+     * @return bool
+     */
+    private function exceptionThrownByContainer(\InvalidArgumentException $exception)
+    {
+        $trace = $exception->getTrace()[0];
+
+        return $trace['class'] === PimpleContainer::class && $trace['function'] === 'offsetGet';
     }
 
     /**
@@ -182,5 +160,20 @@ final class Container extends PimpleContainer implements ContainerInterface
     public function has($id)
     {
         return $this->offsetExists($id);
+    }
+
+
+    /********************************************************************************
+     * Magic methods for convenience
+     *******************************************************************************/
+
+    public function __get($name)
+    {
+        return $this->get($name);
+    }
+
+    public function __isset($name)
+    {
+        return $this->has($name);
     }
 }

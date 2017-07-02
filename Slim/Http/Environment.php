@@ -1,13 +1,14 @@
 <?php
 /**
- * Slim Framework (http://slimframework.com)
+ * Slim Framework (https://slimframework.com)
  *
- * @link      https://github.com/codeguy/Slim
- * @copyright Copyright (c) 2011-2015 Josh Lockhart
- * @license   https://github.com/codeguy/Slim/blob/master/LICENSE (MIT License)
+ * @link      https://github.com/slimphp/Slim
+ * @copyright Copyright (c) 2011-2017 Josh Lockhart
+ * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 namespace Slim\Http;
 
+use Slim\Collection;
 use Slim\Interfaces\Http\EnvironmentInterface;
 
 /**
@@ -23,6 +24,7 @@ class Environment extends Collection implements EnvironmentInterface
      * Create mock environment
      *
      * @param  array $userData Array of custom environment keys and values
+     *
      * @return self
      */
     public static function mock(array $userData = [])
@@ -42,6 +44,7 @@ class Environment extends Collection implements EnvironmentInterface
             'HTTP_USER_AGENT'      => 'Slim Framework',
             'REMOTE_ADDR'          => '127.0.0.1',
             'REQUEST_TIME'         => time(),
+            'REQUEST_TIME_FLOAT'   => microtime(true),
         ], $userData);
 
         return new static($data);
