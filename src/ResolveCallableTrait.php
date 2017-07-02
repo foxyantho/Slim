@@ -44,7 +44,7 @@ trait ResolveCallableTrait
             //     return $callable->bindTo($this->container);
             // }
 
-            // return $callable->bindTo($this);
+            // return $callable->bindTo($this); todo
         }
 
         if( is_callable($callable) )
@@ -52,11 +52,11 @@ trait ResolveCallableTrait
             return $callable;
         }
 
-        if( is_string($callable) && strpos($callable, '@') )
+        if( is_string($callable) && strpos($callable, '@') ) // todo try Controller::class
         {
             // check if a controller ( \class@method )
 
-            if( preg_match('#^([^@]+)@([a-zA-Z0-9_]+)$#', $callable, $matches) )
+            if( preg_match('#^([^@]+)@([a-zA-Z0-9_]+)$#', $callable, $matches) ) // todo : explode('@') + use class:method
             {
                 // wrap it into a closure
 
