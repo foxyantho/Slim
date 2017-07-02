@@ -41,31 +41,6 @@ class Router implements RouterInterface
      */
     protected $routes = [];
 
-    /**
-     * URI base path "//example.com/folder/" used in urlfor()
-     * @var string
-     */
-    protected $uriRoot;
-
-
-    /**
-     * Set the URI base path used in urlfor()
-     *
-     * @param string $uri
-     *
-     * @return self
-     */
-    public function setUriRoot( $uri )
-    {
-        if( !is_string($uri) )
-        {
-            throw new InvalidArgumentException('Router basePath must be a string');
-        }
-
-        $this->uriRoot = $uri;
-
-        return $this;
-    }
 
     /**
      * Add route
@@ -126,9 +101,6 @@ class Router implements RouterInterface
      */
     public function dispatch( $httpMethod, $uri) // todo refactor
     {
-        // $uri = '/' . ltrim($request->getUri()->getPath(), '/');
-
-
         foreach( $this->routes as $identifier => $route )
         {
             // get regex of route pattern    /user/{name}/{id:[0-9]+}/{page:int}
@@ -136,13 +108,13 @@ class Router implements RouterInterface
             $regex = preg_replace_callback(
 
                 '#' .
-                    '{' .
+                    '\{' .
                         '\s*([a-zA-Z][a-zA-Z0-9_]*)\s*' .
 
                         '(?:' .
-                            ':\s*([^{}]*(?:{(?-1)}[^{}]*)*)' .
+                            ':\s*([^{}]*(?:\{(?-1)\}[^{}]*)*)' .
                         ')?' .
-                    '}' .
+                    '\}' .
                 '#',
 
                 [$this, 'matchesCallback'],
@@ -209,14 +181,14 @@ class Router implements RouterInterface
      * Build URL for named route
      *
      * @param  string $name
-     * @param  array  $data        URI segments replacement data
+     * @param  array  $routeParams        URI segments replacement data
      * @param  array  $queryParams Optional query string parameters
      *
      * @return string
      * @throws \RuntimeException         If named route does not exist
      * @throws \InvalidArgumentException If required data not provided
      */
-    public function urlFor( $identifier, array $data = [], array $queryParams = [] )
+    public function urlFor( $identifier, array $routeParams = [], array $queryParams = [] )
     {
         // search if route exist :
 
@@ -232,33 +204,25 @@ class Router implements RouterInterface
 
         // alternative without need of explode : /{([a-zA-Z0-9_]+)(?::\s*[^{}]*(?:\{(?-1)\}[^{}]*)*)?}/
 
-        $url = preg_replace_callback('~{([^}]+)}~', function( $match ) use ( $data ) {
+        $url = preg_replace_callback('~{([^}]+)}~', function( $match ) use ( $routeParams ) {
             
             $segmentName = explode(':', $match[1])[0];
 
-            if( !isset($data[$segmentName]) )
+            if( !isset($routeParams[$segmentName]) )
             {
                 throw new InvalidArgumentException('Missing data for URL segment: ' . $segmentName);
             }
 
-            return $data[$segmentName];
+            return $routeParams[$segmentName];
 
         }, $pattern);
 
-        // query params ?x=x
+        // query params "?page=welcome"
 
         if( $queryParams )
         {
             $url .= '?' . http_build_query($queryParams);
         }
-
-        // set uri base path if set
-
-        if( $this->uriRoot )
-        {
-            $url = $this->uriRoot . ltrim($url, '/');
-        }
-
 
         return $url;
     }
