@@ -1,9 +1,9 @@
 <?php
 /**
- * Slim Framework (http://slimframework.com)
+ * Slim Framework (https://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2016 Josh Lockhart
+ * @copyright Copyright (c) 2011-2017 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -145,13 +145,18 @@ class Exception implements HandlerInterface
     }
 
     /**
-     * Render exception as html.
+     * Render exception or error as html.
      *
      * @param Exception $exception
      * @return string
      */
     protected function renderHtmlException( BaseException $exception )
     {
+        // if (!$exception instanceof \Exception && !$exception instanceof \Error) {
+        //     throw new \RuntimeException("Unexpected type. Expected Exception or Error.");
+        // }
+        // TODO
+
         $html = sprintf('<div><strong>Type:</strong> %s</div>', get_class($exception));
 
         if( ($code = $exception->getCode()) )

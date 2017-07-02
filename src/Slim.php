@@ -1,9 +1,9 @@
 <?php
 /**
- * Slim Framework (http://slimframework.com)
+ * Slim Framework (https://slimframework.com)
  *
  * @link      https://github.com/slimphp/Slim
- * @copyright Copyright (c) 2011-2016 Josh Lockhart
+ * @copyright Copyright (c) 2011-2017 Josh Lockhart
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE.md (MIT License)
  */
 
@@ -28,6 +28,7 @@ use Slim\Handlers\Exception as ExceptionHandler;
 use Closure;
 
 use Exception;
+//use Throwable;
 use Slim\Exceptions\NotFoundException;
 use Slim\Exceptions\MethodNotAllowedException;
 use Slim\Exceptions\SlimException;
@@ -202,6 +203,68 @@ class Slim
     }
 
 
+
+    /********************************************************************************
+     * Settings management
+     *******************************************************************************/
+
+
+    /**
+     * Does app have a setting with given key?
+     *
+     * @param string $key
+     * @return bool
+     */
+    public function hasSetting( $key )
+    {
+        return isset($this->settings[$key]);
+    }
+
+    /**
+     * Get app settings
+     *
+     * @return array
+     */
+    public function getSettings()
+    {
+        return $this->settings;
+    }
+
+    /**
+     * Get app setting with given key
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public function getSetting( $key, $default = null )
+    {
+        return $this->hasSetting($key) ? $this->settings[$key] : $default;
+    }
+
+    /**
+     * Merge a key-value array with existing app settings
+     *
+     * @param array $settings
+     */
+    public function addSettings( array $settings )
+    {
+        $this->settings = array_merge($this->settings, $settings);
+    }
+
+    /**
+     * Add single app setting
+     *
+     * @param string $key
+     * @param mixed $value
+     */
+    public function addSetting( $key, $value )
+    {
+        $this->settings[$key] = $value;
+    }
+
+
+
     /********************************************************************************
      * Router proxy methods
      *******************************************************************************/
@@ -308,6 +371,8 @@ class Slim
      */
     public function map( $routeName, array $methods, $pattern, $callable )
     {
+        // todo callable->bindTo
+
         $route = $this->router->map($routeName, $methods, $pattern, $callable);
 
         return $route;
@@ -469,6 +534,7 @@ class Slim
      * @param  RequestInterface  $request  The most recent Request object
      * @param  ResponseInterface $response The most recent Response object
      * @return ResponseInterface
+     * 
      * @throws MethodNotAllowedException
      * @throws NotFoundException
      */
