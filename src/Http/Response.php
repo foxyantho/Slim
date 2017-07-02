@@ -20,10 +20,6 @@ use RuntimeException;
  *
  * This class represents an HTTP response. It manages
  * the response status, headers, and body
- * according to the PSR-7 standard.
- *
- * @link https://github.com/php-fig/http-message/blob/master/src/MessageInterface.php
- * @link https://github.com/php-fig/http-message/blob/master/src/ResponseInterface.php
  */
 class Response implements ResponseInterface
 {
@@ -59,10 +55,9 @@ class Response implements ResponseInterface
 
     /**
      * Status codes and reason phrases
-     *
      * @var array
      */
-    protected static $messages = [
+    protected $messages = [
         //Informational 1xx
         100 => 'Continue',
         101 => 'Switching Protocols',
@@ -214,16 +209,16 @@ class Response implements ResponseInterface
 
         if( !is_string($reasonPhrase) )
         {
-            throw new InvalidArgumentException('ReasonPhrase must be a string');
+            throw new InvalidArgumentException('Reason phrase must be a string');
         }
 
-        if( $reasonPhrase === '' && isset(static::$messages[$code]) )
+        if( empty($reasonPhrase) && isset($this->messages[$code]) )
         {
-            $reasonPhrase = static::$messages[$code]; // try default message if found
+            $reasonPhrase = $this->messages[$code]; // try default message if found
         }
 
 
-        $this->status = $code; //@FIXME: wrap into try/catch
+        $this->status = $code; //todo: wrap into try/catch
 
         $this->reasonPhrase = $reasonPhrase;
 
@@ -268,9 +263,9 @@ class Response implements ResponseInterface
             return $this->reasonPhrase;
         }
 
-        if( isset(static::$messages[$this->status]) )
+        if( isset($this->messages[$this->status]) )
         {
-            return static::$messages[$this->status];
+            return $this->messages[$this->status];
         }
 
         return '';
@@ -287,21 +282,6 @@ class Response implements ResponseInterface
      *
      * The keys represent the header name as it will be sent over the wire, and
      * each value is an array of strings associated with the header.
-     *
-     *     // Represent the headers as a string
-     *     foreach ($message->getHeaders() as $name => $values) {
-     *         echo $name . ": " . implode(", ", $values);
-     *     }
-     *
-     *     // Emit headers iteratively:
-     *     foreach ($message->getHeaders() as $name => $values) {
-     *         foreach ($values as $value) {
-     *             header(sprintf('%s: %s', $name, $value), false);
-     *         }
-     *     }
-     *
-     * While header names are not case-sensitive, getHeaders() will preserve the
-     * exact case in which headers were originally specified.
      *
      * @return array Returns an associative array of the message's headers. Each
      *     key MUST be a header name, and each value MUST be an array of strings
@@ -440,7 +420,7 @@ class Response implements ResponseInterface
      */
     public function redirect( $url, $status = 302 )
     {
-        return $this->status($status)->header('location', (string)$url);
+        return $this->status($status)->header('location', (string) $url);
     }
 
     /**
@@ -452,9 +432,9 @@ class Response implements ResponseInterface
      * @param  int    $encodingOptions encoding options
      * @return self
      */
-    public function json( $data, $status = 200, $encodingOptions = 0 )
+    public function json( $data, $status = null, $encodingOptions = 0 )
     {
-        $this->write($json = json_encode($data, $encodingOptions));
+        $json = json_encode($data, $encodingOptions);
 
         // Ensure that the json encoding passed successfully
 
@@ -463,9 +443,18 @@ class Response implements ResponseInterface
             throw new RuntimeException(json_last_error_msg(), json_last_error());
         }
 
+        // add headers
 
-        return $this->status($status)
-                    ->header('content.type', 'application/json;charset=utf-8');
+        $this->header('content.type', 'application/json;charset=utf-8');
+
+        $this->write($json);
+
+        if( isset($status) )
+        {
+            $this->status($status);
+        }
+
+        return $this;
     }
 
     /**
