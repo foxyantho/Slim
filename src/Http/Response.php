@@ -558,6 +558,7 @@ class Response implements ResponseInterface
         return $this->getStatusCode() >= 500 && $this->getStatusCode() < 600;
     }
 
+
     /**
      * Convert response to string.
      *
