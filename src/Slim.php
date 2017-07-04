@@ -150,8 +150,6 @@ class Slim
 
             'httpVersion' => '1.1',
 
-            'use_rewrite' => true, //@TODO: implementation
-
             'displayErrorDetails' => true,
 
 
