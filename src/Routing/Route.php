@@ -138,20 +138,35 @@ class Route implements RouteInterface
         return $this->arguments;
     }
 
+    /**
+     * Get default route invocation strategy
+     *
+     * @return RouteInvocationStrategyInterface|null
+     */
+    public function getInvocationStrategy()
+    {
+        if( !$this->invocationStrategy )
+        {
+            $this->invocationStrategy = new InvocationStrategy; // default
+        }
+
+        return $this->invocationStrategy;
+    }
+
 
     /********************************************************************************
      * Route Runner
      *******************************************************************************/
 
     /**
-     * Prepare the route just before run()
+     * Prepare the route just before run() : add the arguments & strategy
      *
      * @param ServerRequestInterface $request
      * @param array $arguments
      */
-    public function prepare( Request $request, array $arguments )
+    public function prepare( InvocationStrategyInterface $handler, array $arguments = [] )
     {
-        // Add the arguments
+        $this->invocationStrategy = $handler;
 
         $this->arguments = $arguments;
     }
@@ -209,34 +224,7 @@ class Route implements RouteInterface
             throw new RuntimeException('Route handler must return an instance of ResponseInterface');
         }
 
-
         return $routeResponse;
-    }
-
-
-    /**
-     * Get default route invocation strategy
-     *
-     * @return RouteInvocationStrategyInterface|null
-     */
-    public function getInvocationStrategy()
-    {
-        if( !$this->invocationStrategy )
-        {
-            $this->invocationStrategy = new InvocationStrategy; // default
-        }
-
-        return $this->invocationStrategy;
-    }
-
-    /**
-     * Set default route invocation strategy
-     *
-     * @param RouteInvocationStrategyInterface $handler
-     */
-    public function setInvocationStrategy( InvocationStrategyInterface $handler )
-    {
-        $this->invocationStrategy = $handler;
     }
 
 

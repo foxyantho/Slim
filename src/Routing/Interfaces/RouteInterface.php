@@ -28,6 +28,4 @@ interface RouteInterface
 
     public function getInvocationStrategy();
 
-    public function setInvocationStrategy( RouteInvocationStrategyInterface $handler );
-
 }

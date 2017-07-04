@@ -551,19 +551,16 @@ class Slim
         if( $routeInfo[0] === Router::FOUND )
         {
             // URL decode the named arguments from the router
-            // aka dispatchRouterAndPrepareRoute
 
             $routeArguments = array_map('urldecode', $routeInfo[2]);
 
             // prepare the route
 
-            $handler = $this->getRouteInvocationStrategy();
-
             $route = $routeInfo[1];
 
-            $route->prepare($request, $routeArguments);
+            $handler = $this->getRouteInvocationStrategy();
 
-            $route->setInvocationStrategy($handler);
+            $route->prepare($handler, $routeArguments);
 
             // traverse route middlewares :
 
