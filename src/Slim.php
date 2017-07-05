@@ -200,6 +200,17 @@ class Slim
         $this->container[$key] = $value;
     }
 
+    /**
+     * Container's isset
+     * 
+     * @param  mixed $key
+     * @return bool
+     */
+    public function __isset( $key )
+    {
+        return isset($this->container[$key]);
+    }
+
 
 
     /********************************************************************************
