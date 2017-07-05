@@ -30,7 +30,7 @@ class MethodNotAllowedException extends SlimException
      * @param ResponseInterface $response
      * @param string[] $allowedMethods
      */
-    public function __construct( Request $request, Response $response, array $allowedMethods )
+    public function __construct( array $allowedMethods )
     {
         parent::__construct($request, $response);
 
