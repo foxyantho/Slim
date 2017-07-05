@@ -16,7 +16,8 @@ use Slim\Routing\Interfaces\RouteInvocationStrategyInterface;
 use Slim\Http\Interfaces\RequestInterface as Request;
 
 use InvalidArgumentException;
-use RuntimeException;
+use Slim\Routing\Exceptions\NotFoundException;
+use Slim\Routing\Exceptions\MethodNotAllowedException;
 
 /**
  * Router
@@ -29,11 +30,6 @@ use RuntimeException;
  */
 class Router implements RouterInterface
 {
-
-    const FOUND = 0;
-    const NOT_FOUND = 1;
-    const METHOD_NOT_ALLOWED = 2;
-
 
     /**
      * lookup of all route objects
@@ -60,10 +56,9 @@ class Router implements RouterInterface
             throw new InvalidArgumentException('Route pattern must be a string');
         }
 
-        $methods = array_map('strtoupper', $methods); // RFC 7231, methods are in uppercase
-
-
         // create route
+
+        $methods = array_map('strtoupper', $methods); // RFC 7231, methods are in uppercase
 
         $route = $this->createRoute($methods, $pattern, $handler);
 
@@ -97,84 +92,43 @@ class Router implements RouterInterface
      * @param  string $httpMethod
      * @param  string $uri
      * @return array
-     * @link   https://github.com/nikic/FastRoute/
+     * 
+     * @throws MethodNotAllowedException
+     * @throws NotFoundException
      */
-    public function dispatch( $httpMethod, $uri) // todo refactor
+    public function dispatch( $httpMethod, $uri ) // todo refactor
     {
+
         foreach( $this->routes as $identifier => $route )
         {
-            // get regex of route pattern    /user/{name}/{id:[0-9]+}/{page:int}
-
-            $regex = preg_replace_callback(
-
-                '#' .
-                    '\{' .
-                        '\s*([a-zA-Z][a-zA-Z0-9_]*)\s*' .
-
-                        '(?:' .
-                            ':\s*([^{}]*(?:\{(?-1)\}[^{}]*)*)' .
-                        ')?' .
-                    '\}' .
-                '#',
-
-                [$this, 'matchesCallback'],
-
-                $route->getPattern()
-            );
-
-            //    /user/(?P<name>[^/]+)/(?P<id>[0-9]+)
-
-
             // check if pattern regex match the uri
 
-            if( preg_match('#^' . $regex . '$#', $uri, $params) )
-            {
+            $regex = '#^' . str_replace('#', '\#', $route->getPattern()) . '$#';
 
+            if( preg_match($regex, $uri, $params) )
+            {
                 // compare server request method with route's allowed http methods
 
-                if( !in_array($httpMethod, $allowedMethods = $route->getMethods()) )
+                // todo : if declare route with methods separatly : map('get',url_1) map('post',url_1)
+
+                $allowedMethods = $route->getMethods();
+
+                if( !in_array($httpMethod, $allowedMethods) )
                 {
-                    return [ static::METHOD_NOT_ALLOWED, $allowedMethods ];
-                    // todo security disable this ?
+                    throw new MethodNotAllowedException($allowedMethods);
                 }
 
-                // only keep named params
-
-                foreach( $params as $key => $value )
-                {
-                    if( is_int($key) )
-                    {
-                        unset($params[$key]); // todo
-                    }
-                }
+                array_shift($params); // remove capture
 
                 // route is found :
                 
-                return [ static::FOUND, $route, $params];
+                return [$route, $params];
             }
         }
 
         // check all routes, but not found
 
-        return [ static::NOT_FOUND ];
-    }
-
-    /**
-     * Convert a URL parameter into a regular expression
-     * 
-     * @param  array $m regex matches
-     * @return string
-     */
-    protected function matchesCallback( array $m )
-    {
-        $condition = '[^/]+'; // default, everything
-
-        if( isset($m[2]) )
-        {
-            $condition = $m[2]; // if regex: {id: "[0-9]+" }
-        }
-
-        return sprintf('(?P<%s>%s)', $m[1], $condition); 
+        throw new NotFoundException;
     }
 
     /**
@@ -196,7 +150,7 @@ class Router implements RouterInterface
 
         if( !isset($route) )
         {
-            throw new RuntimeException('Named route does not exist for name : ' . $name);
+            throw new \RuntimeException('Named route does not exist for name : ' . $name);
         }
 
         $pattern = $route->getPattern();

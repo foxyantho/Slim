@@ -29,9 +29,9 @@ use Closure;
 
 use Exception;
 //use Throwable;
-use Slim\Exceptions\NotFoundException;
-use Slim\Exceptions\MethodNotAllowedException;
 use Slim\Exceptions\SlimException;
+use Slim\Routing\Exceptions\NotFoundException;
+use Slim\Routing\Exceptions\MethodNotAllowedException;
 
 /**
  * App
@@ -376,23 +376,6 @@ class Slim
         return $route;
     }
 
-    /**
-     * Return a route by it's identifier
-     *
-     * @param mixed $identifier
-     * @param array $data
-     * @param array $queryParams
-     * @return string
-     */
-    public function urlFor( $identifier, array $routeParams = [], array $queryParams = [] )
-    {
-        $root = rtrim($this->request->getUriRoot(), '/'); // remove ending slash
-
-        $routeUri = $this->router->urlFor($identifier, $routeParams, $queryParams);
-
-        return $root.$routeUri;
-    }
-    // TODO
 
     /********************************************************************************
      * Application flow methods
@@ -435,13 +418,16 @@ class Slim
     {
        // traverse middleware stack ; process the request
 
-        try
-        {
+        try {
             $response = $this->callMiddlewareStack($this->request, $this->response);
         }
-        catch( Exception $exception )
-        {
-            $response = $this->handleException($this->request, $this->response, $exception);
+        catch( Exception $e ) {
+
+            // catch any other exception
+
+            $handler = $this->getExceptionHandler();
+
+            $response = $handler($this->request, $this->response, $e);
         }
         // todo thrwable
 
@@ -538,25 +524,20 @@ class Slim
      */
     public function __invoke( Request $request, Response $response )
     {
+        try {
 
-        $routeInfo = $this->router->dispatch(
-            $request->getMethod(),
-            $request->getUriPath()
-        );
+            $routeInfo = $this->router->dispatch(
+                $request->getMethod(),
+                $request->getUriPath()
+            );
 
-        // 0 -> type
-        // 1 -> Route
-        // 2 -> uri arguments
+            list($route, $routeArguments) = $routeInfo;
 
-        if( $routeInfo[0] === Router::FOUND )
-        {
             // URL decode the named arguments from the router
 
-            $routeArguments = array_map('urldecode', $routeInfo[2]);
+            $routeArguments = array_map('urldecode', $routeArguments);
 
             // prepare the route
-
-            $route = $routeInfo[1];
 
             $handler = $this->getRouteInvocationStrategy();
 
@@ -565,59 +546,21 @@ class Slim
             // traverse route middlewares :
 
             return $route->run($request, $response);
-        }
 
-        if( $routeInfo[0] === Router::NOT_FOUND )
-        {
-            throw new NotFoundException($request, $response);
         }
+        catch( NotFoundException $e ) {
 
-        if( $routeInfo[0] === Router::METHOD_NOT_ALLOWED )
-        {
-            throw new MethodNotAllowedException($request, $response, $routeInfo[1]);
-        }
-    }
-
-    /**
-     * Call relevant handler from the Container if needed. If it doesn't exist, then just re-throw.
-     *
-     * @param  Exception $e
-     * @param  ServerRequestInterface $request
-     * @param  ResponseInterface $response
-     *
-     * @return ResponseInterface
-     * @throws Exception if a handler is needed and not found
-     */
-    protected function handleException( Request $request, Response $response, Exception $e )
-    {
-        if( $e instanceof NotFoundException )
-        {
             $handler = $this->getNotFoundHandler();
 
-            return $handler($e->getRequest(), $e->getResponse());
+            return $handler($request, $response);
         }
-
-        elseif( $e instanceof MethodNotAllowedException )
+        catch( MethodNotAllowedException $e )
         {
             $handler = $this->getNotAllowedHandler();
 
-            return $handler($e->getRequest(), $e->getResponse(), $e->getAllowedMethods());
+            return $handler($request, $response, $e->getAllowedMethods());
         }
-
-        elseif( $e instanceof SlimException )
-        {
-            // this is a Stop exception and contains the 
-
-            return $e->getResponse();
-        }
-
-        // other exception, use $request and $response params
-
-        $handler = $this->getExceptionHandler();
-
-        return $handler($request, $response, $e);
     }
-
 
 
     /********************************************************************************

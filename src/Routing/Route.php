@@ -47,7 +47,7 @@ class Route implements RouteInterface
      * Route pattern "/hello/world"
      * @var string
      */
-    protected $pattern;
+    protected $pattern; // todo rename to "url" ?
 
     /**
      * Route callable function

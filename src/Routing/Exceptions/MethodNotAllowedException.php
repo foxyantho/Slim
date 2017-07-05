@@ -7,13 +7,12 @@
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE (MIT License)
  */
 
-namespace Slim\Exceptions;
+namespace Slim\Routing\Exceptions;
 
-use Slim\Http\Interfaces\RequestInterface as Request;
-use Slim\Http\Interfaces\ResponseInterface as Response;
+use Exception;
 
 
-class MethodNotAllowedException extends SlimException
+class MethodNotAllowedException extends Exception
 {
 
     /**
@@ -26,15 +25,13 @@ class MethodNotAllowedException extends SlimException
     /**
      * Create new exception
      *
-     * @param ServerRequestInterface $request
-     * @param ResponseInterface $response
      * @param string[] $allowedMethods
      */
     public function __construct( array $allowedMethods )
     {
-        parent::__construct($request, $response);
-
         $this->allowedMethods = $allowedMethods;
+
+        parent::__construct();
     }
 
     /**

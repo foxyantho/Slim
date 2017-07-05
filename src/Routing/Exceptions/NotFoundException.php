@@ -7,11 +7,12 @@
  * @license   https://github.com/slimphp/Slim/blob/3.x/LICENSE (MIT License)
  */
 
+namespace Slim\Routing\Exceptions;
 
-namespace Slim\Exceptions;
+use Exception;
 
 
-class NotFoundException extends SlimException
+class NotFoundException extends Exception
 {
 
 }
