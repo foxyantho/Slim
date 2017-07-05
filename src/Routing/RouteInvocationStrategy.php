@@ -30,7 +30,7 @@ class RouteInvocationStrategy implements RouteInvocationStrategyInterface
     public function __invoke( Request $request, Response $response, callable $callable, array $routeArguments )
     {
 
-        $newResponse = call_user_func_array($callable, [ $request, $response ] + $routeArguments);
+        $newResponse = call_user_func_array($callable, array_merge([$request, $response], $routeArguments));
 
         // if new response is a string, then append it to the originale response
 
