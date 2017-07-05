@@ -96,7 +96,7 @@ class Router implements RouterInterface
      * @throws MethodNotAllowedException
      * @throws NotFoundException
      */
-    public function dispatch( $httpMethod, $uri ) // todo refactor
+    public function dispatch( $httpMethod, $uri )
     {
 
         foreach( $this->routes as $identifier => $route )
@@ -129,56 +129,6 @@ class Router implements RouterInterface
         // check all routes, but not found
 
         throw new NotFoundException;
-    }
-
-    /**
-     * Build URL for named route
-     *
-     * @param  string $name
-     * @param  array  $routeParams        URI segments replacement data
-     * @param  array  $queryParams Optional query string parameters
-     *
-     * @return string
-     * @throws \RuntimeException         If named route does not exist
-     * @throws \InvalidArgumentException If required data not provided
-     */
-    public function urlFor( $identifier, array $routeParams = [], array $queryParams = [] )
-    {
-        // search if route exist :
-
-        $route = $this->lookup($identifier);
-
-        if( !isset($route) )
-        {
-            throw new \RuntimeException('Named route does not exist for name : ' . $name);
-        }
-
-        $pattern = $route->getPattern();
-
-
-        // alternative without need of explode : /{([a-zA-Z0-9_]+)(?::\s*[^{}]*(?:\{(?-1)\}[^{}]*)*)?}/
-
-        $url = preg_replace_callback('~{([^}]+)}~', function( $match ) use ( $routeParams ) {
-            
-            $segmentName = explode(':', $match[1])[0];
-
-            if( !isset($routeParams[$segmentName]) )
-            {
-                throw new InvalidArgumentException('Missing data for URL segment: ' . $segmentName);
-            }
-
-            return $routeParams[$segmentName];
-
-        }, $pattern);
-
-        // query params "?page=welcome"
-
-        if( $queryParams )
-        {
-            $url .= '?' . http_build_query($queryParams);
-        }
-
-        return $url;
     }
 
     /**
