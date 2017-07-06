@@ -542,7 +542,7 @@ class Slim
                 $request->getUriPath()
             );
 
-            list($route, $routeArguments) = $routeInfo;
+            list($routeName, $route, $routeArguments) = $routeInfo;
 
             // URL decode the named arguments from the router
 

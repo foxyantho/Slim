@@ -91,7 +91,7 @@ class Router implements RouterInterface
      * 
      * @param  string $httpMethod
      * @param  string $uri
-     * @return array
+     * @return array[$routeName, $route, $routeArguments]
      * 
      * @throws MethodNotAllowedException
      * @throws NotFoundException
@@ -122,7 +122,7 @@ class Router implements RouterInterface
 
                 // route is found :
                 
-                return [$route, $params];
+                return [$identifier, $route, $params];
             }
         }
 
