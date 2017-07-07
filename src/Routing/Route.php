@@ -21,7 +21,7 @@ use Slim\Http\Interfaces\ResponseInterface as Response;
 
 use Closure;
 use Exception;
-use InvalidArgumentException;
+use UnexpectedValueException;
 use RuntimeException;
 
 /**
@@ -221,7 +221,7 @@ class Route implements RouteInterface
 
         if( !$routeResponse instanceof Response )
         {
-            throw new RuntimeException('Route handler must return an instance of ResponseInterface');
+            throw new UnexpectedValueException('Route handler must return an instance of ResponseInterface');
         }
 
         return $routeResponse;
