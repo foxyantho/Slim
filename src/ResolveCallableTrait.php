@@ -20,7 +20,7 @@ use RuntimeException;
 /**
  * ResolveCallable
  *
- * This is an internal class that enables resolution of '\class@method' strings
+ * This is an internal class that enables resolution of '\class:method' strings
  * into a closure. This class is an implementation detail and is used only inside
  * of the Slim application.
  */
@@ -37,43 +37,49 @@ trait ResolveCallableTrait
     protected function resolveCallable( $callable )
     {
 
-        if( $callable instanceof Closure )
+        if( $callable instanceof Closure ) // closures
         {
             // if ( isset($this->container) )
             // {
             //     return $callable->bindTo($this->container);
             // }
 
-            // return $callable->bindTo($this); todo
+            // return $callable->bindTo($this); //todo
         }
 
-        if( is_callable($callable) )
+        if( is_callable($callable) ) // functions
         {
             return $callable;
         }
 
-        if( is_string($callable) && strpos($callable, '@') ) // todo try Controller::class
+        if( is_string($callable) ) // "\Class:method" or \Class::class
         {
-            // check if a controller ( \class@method )
+            $class = $callable;
+            $method = '__invoke';
 
-            if( preg_match('#^([^@]+)@([a-zA-Z0-9_]+)$#', $callable, $matches) ) // todo : explode('@') + use class:method
+            if( strpos($callable, ':') )
             {
-                // wrap it into a closure
-
-                $class = $matches[1];
-                $method = $matches[2];
-
-                return function( Request $request, Response $response ) use ( $class, $method )
-                {
-                    // first two arguments are always req & res
-
-                    return call_user_func_array([new $class, $method], func_get_args());
-                };
+                list($class, $method) = explode(':', $callable, 2);
             }
 
+            if( !class_exists($class) )
+            {
+                throw new RuntimeException(sprintf('Callable "%s" does not exist', $class));
+            }
+
+            // call the resolved :
+
+            $resolved = [new $class, $method];
+
+            if( !is_callable($resolved) )
+            {
+                throw new RuntimeException(sprintf('Callable "%s" is not resolvable', 'xx'));
+            }
+
+            return $resolved; // function() { call_user_func_array($resolved, func_get_args()); };
         }
 
-        throw new RuntimeException('Callable "' . $callable . '" is not resolvable');
+        throw new RuntimeException(sprintf('Callable "%s" is not resolvable', $callable));
     }
 
 
