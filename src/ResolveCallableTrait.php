@@ -9,9 +9,6 @@
 
 namespace Slim;
 
-use Slim\Http\Interfaces\RequestInterface as Request;
-use Slim\Http\Interfaces\ResponseInterface as Response;
-
 use Closure;
 
 use RuntimeException;
@@ -62,18 +59,13 @@ trait ResolveCallableTrait
                 list($class, $method) = explode(':', $callable, 2);
             }
 
-            if( !class_exists($class) )
-            {
-                throw new RuntimeException(sprintf('Callable "%s" does not exist', $class));
-            }
-
             // call the resolved :
 
             $resolved = [new $class, $method];
 
             if( !is_callable($resolved) )
             {
-                throw new RuntimeException(sprintf('Callable "%s" is not resolvable', 'xx'));
+                throw new RuntimeException(sprintf('Callable "%s" does not exist', $callable));
             }
 
             return $resolved; // function() { call_user_func_array($resolved, func_get_args()); };
