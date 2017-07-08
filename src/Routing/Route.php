@@ -217,7 +217,7 @@ class Route implements RouteInterface
 
         // call the route handler
 
-        $routeResponse = $handler($request, $response, $callable, $this->arguments);;
+        $routeResponse = $handler($request, $response, $callable, $this->arguments);
 
         if( !$routeResponse instanceof Response )
         {
