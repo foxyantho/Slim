@@ -113,6 +113,18 @@ class Request implements RequestInterface
      */
     protected $bodyParsers = [];
 
+    /**
+     * Media type ex: "application/json"
+     * @var string|null
+     */
+    protected $mediaType;
+
+    /**
+     * Undocumented variable ex: ['charset' => 'utf8', 'foo' => 'bar']
+     * @var array
+     */
+    protected $mediaTypeParams;
+
 
 
     /**
@@ -489,6 +501,7 @@ class Request implements RequestInterface
         if( !isset($this->queryParams) )
         {
             // lazy
+
             parse_str($this->queryString, $this->queryParams); // send URL decodes in $queryParams
         }
 
@@ -507,6 +520,7 @@ class Request implements RequestInterface
         if( !isset($this->queryParams) )
         {
             // lazy
+
             parse_str($this->queryString, $this->queryParams); // send URL decodes in $queryParams
         }
 
@@ -578,14 +592,21 @@ class Request implements RequestInterface
      */
     public function getMediaType()
     {
-        if( $contentType = $this->getContentType() )
+        if( !isset($this->mediaType) )
         {
-            $contentTypeParts = preg_split('/\s*[;,]\s*/', $contentType);
+            // lazy
 
-            return strtolower($contentTypeParts[0]);
+            if( $contentType = $this->getContentType() )
+            {
+                $contentTypeParts = preg_split('/\s*[;,]\s*/', $contentType);
+
+                $mediaType = strtolower($contentTypeParts[0]);
+            }
+
+            $this->mediaType = isset($mediaType) ? $mediaType : null;
         }
 
-        return null;
+        return $this->mediaType;
     }
 
     /**
@@ -596,21 +617,28 @@ class Request implements RequestInterface
      */
     public function getMediaTypeParams()
     {
-        $contentTypeParams = [];
-
-        if( $contentType = $this->getContentType() )
+        if( !isset($this->mediaTypeParams) )
         {
-            $parts = preg_split('/\s*[;,]\s*/', $contentType);
+            // lazy
+        
+            $contentTypeParams = [];
 
-            foreach( array_slice($parts, 1) as $part ) // first is content-type : not needed
+            if( $contentType = $this->getContentType() )
             {
-                $conf = explode('=', $part);
+                $parts = preg_split('/\s*[;,]\s*/', $contentType);
 
-                $contentTypeParams[strtolower($conf[0])] = $conf[1];
+                foreach( array_slice($parts, 1) as $part ) // first is content-type : not needed
+                {
+                    $conf = explode('=', $part);
+
+                    $contentTypeParams[strtolower($conf[0])] = $conf[1];
+                }
             }
+
+            $this->mediaTypeParams = $contentTypeParams;
         }
 
-        return $contentTypeParams;
+        return $this->mediaTypeParams;
     }
 
     /**
@@ -644,7 +672,7 @@ class Request implements RequestInterface
     }
 
     /**
-     * Lazy: Build the body params and send them into their array
+     * Build the body params and send them into their array
      *
      * @return array|null
      * @throws RuntimeException

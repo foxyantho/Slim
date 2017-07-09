@@ -111,7 +111,7 @@ class Slim
 
         $method = $this->environment['request_method'];
 
-        $environmentHeaders = $this->environment->getAllHeaders(); // getallheaders
+        $environmentHeaders = $this->environment->getHeaders(); // getallheaders
 
         $requestHeaders = new HttpHeaders($environmentHeaders); 
 

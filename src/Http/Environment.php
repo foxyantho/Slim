@@ -33,29 +33,13 @@ class Environment extends Collection implements EnvironmentInterface
         return strtolower($key);
     }
 
-
-    /**
-     * Reconstruct original header name todo
-     *
-     * @param string $key An HTTP header key from the $_SERVER global variable
-     * @return string The reconstructed key
-     *
-     * @example CONTENT_TYPE => Content-Type
-     * @example HTTP_USER_AGENT => User-Agent
-     */
-    public function reconstructKey( $key )
-    {
-        return ucwords($key, '-');
-    }
-
-
     /**
      * Get all header extracted from $_SERVER[HTTP_]
      * As opposed to getallheaders Apache function
      * 
      * @return array
      */
-    public function getAllHeaders()
+    public function getHeaders()
     {
         $special = [
             'content_type', 'content_length',
@@ -68,10 +52,14 @@ class Environment extends Collection implements EnvironmentInterface
         {
             if( strpos($key, 'http_') === 0 )
             {
+                $key = str_replace('_', '-', $key); // http_xxx -> http-xxx
+                
                 $headers[substr($key, 5)] =  $value; // strip 'http_'
             }
             elseif( in_array($key, $special) )
             {
+                $key = str_replace('_', '-', $key); // http_xxx -> http-xxx
+
                 $headers[$key] =  $value;
             }
         }
