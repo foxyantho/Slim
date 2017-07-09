@@ -283,13 +283,13 @@ class Request implements RequestInterface
      */
     public function getMethod()
     {
-        if( empty($this->method) ) // method override via header
-        {
-            if( $customMethod = $this->getHeader('x-http-method-override') )
-            {
-                $this->method = $this->filterMethod($customMethod);
-            }
-        }
+        // if( empty($this->method) ) // method override via header
+        // {
+        //     if( $customMethod = $this->getHeader('x-http-method-override') )
+        //     {
+        //         $this->method = $this->filterMethod($customMethod);
+        //     }
+        // }
 
         return $this->method;
     }
