@@ -445,7 +445,7 @@ class Response implements ResponseInterface
 
         // add headers
 
-        $this->header('content.type', 'application/json;charset=utf-8');
+        $this->header('content-type', 'application/json;charset=utf-8');
 
         $this->write($json);
 

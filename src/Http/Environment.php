@@ -23,14 +23,14 @@ class Environment extends Collection implements EnvironmentInterface
 {
 
     /**
-     * Normalize key in a unified way "key.subkey"
+     * Normalize key "key_subkey" ( lowercase )
      * 
      * @param  mixed $key
      * @return mixed
      */
     public function normalizeKey( $key )
     {
-        return strtolower(str_replace('_', '.', $key));
+        return strtolower($key);
     }
 
 
@@ -45,7 +45,7 @@ class Environment extends Collection implements EnvironmentInterface
      */
     public function reconstructKey( $key )
     {
-        return str_replace('.', '-', ucwords($key, '.'));
+        return ucwords($key, '-');
     }
 
 
@@ -58,17 +58,17 @@ class Environment extends Collection implements EnvironmentInterface
     public function getAllHeaders()
     {
         $special = [
-            'content.type', 'content.length',
-            'auth.type', 'php.auth.user', 'php.auth.pw', 'php.auth.digest'
+            'content_type', 'content_length',
+            'auth_type', 'php_auth_user', 'php_auth_pw', 'php_auth_digest'
         ];
 
         $headers = [];
 
         foreach( $this->all() as $key => $value )
         {
-            if( strpos($key, 'http.') === 0 )
+            if( strpos($key, 'http_') === 0 )
             {
-                $headers[substr($key, 5)] =  $value; // strip 'http.'
+                $headers[substr($key, 5)] =  $value; // strip 'http_'
             }
             elseif( in_array($key, $special) )
             {

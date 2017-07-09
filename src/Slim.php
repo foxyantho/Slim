@@ -109,7 +109,7 @@ class Slim
 
         // request
 
-        $method = $this->environment['request.method'];
+        $method = $this->environment['request_method'];
 
         $environmentHeaders = $this->environment->getAllHeaders(); // getallheaders
 
@@ -123,7 +123,7 @@ class Slim
 
         $protocolVersion = $this->settings['httpVersion'];
 
-        $responseHeaders = new HttpHeaders(['content.type' => 'text/html']);
+        $responseHeaders = new HttpHeaders(['content-type' => 'text/html']);
 
         $this->response = new HttpResponse(200, $responseHeaders);
     
@@ -469,15 +469,15 @@ class Slim
 
         if( $response->isEmpty() )
         {
-            return $response->withoutHeader('content.type')
-                            ->withoutHeader('content.length');
+            return $response->withoutHeader('content-type')
+                            ->withoutHeader('content-length');
         }
 
         // it has body :
 
         if( ( $size = $response->getBodyLength() ) > 0 )
         {
-            $response->header('content.length', (string) $size);
+            $response->header('content-length', (string) $size);
         }
 
 
@@ -506,7 +506,7 @@ class Slim
 
             foreach( $response->getHeaders() as $name => $value )
             {
-                $name = str_replace('.', '-', ucwords($name, '.')); // convert header to right format
+                $name = ucwords($name, '-'); // convert header to right format "Content-Type"
 
                 header(sprintf('%s: %s', $name, $value), false); // don't replace existing
             }

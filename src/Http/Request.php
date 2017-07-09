@@ -123,11 +123,11 @@ class Request implements RequestInterface
      * @param EnvironmentInterface  $serverParams
      * @param mixed                 $body
      */
-    public function __construct( $method, Headers $headers, Environment $serverParams, $body )
+    public function __construct( $method, Headers $headers, Environment $server, $body )
     {
         // _SERVER
 
-        $this->serverParams = $serverParams;
+        $this->serverParams = $server;
 
         // method
 
@@ -135,7 +135,7 @@ class Request implements RequestInterface
 
         // URI part
 
-        $isSecure = $serverParams['https'];
+        $isSecure = $server['https'];
 
         $scheme = ( !empty($isSecure) && $isSecure === 'on' ) ? 'https' : 'http';
 
@@ -143,13 +143,13 @@ class Request implements RequestInterface
 
         // URI authority: Host
 
-        $host = $serverParams['http.host'] ?: $serverParams['server.name'];
+        $host = $server['http_host'] ?: $server['server_name'];
 
         $this->uriHost = $host;
 
         // request URI, stripped from query params
 
-        $requestUri = rawurldecode($serverParams['request.uri']); // &20
+        $requestUri = rawurldecode($server['request_uri']); // &20
 
         if( ($pos = strpos($requestUri, '?')) !== false )
         {
@@ -162,15 +162,15 @@ class Request implements RequestInterface
 
         // query string
 
-        $queryString = $serverParams['query.string'];
+        $queryString = $server['query_string'];
 
         $this->queryString = $queryString; // todo if empty ?
 
         // protocol version
         
-        if( isset($serverParams['server.protocol']) )
+        if( isset($server['server_protocol']) )
         {
-            $this->protocolVersion = str_replace('HTTP/', '', $serverParams['server.protocol']);
+            $this->protocolVersion = str_replace('HTTP/', '', $server['server_protocol']);
         }
 
         // headers ; request content
@@ -285,7 +285,7 @@ class Request implements RequestInterface
     {
         if( empty($this->method) ) // method override via header
         {
-            if( $customMethod = $this->getHeader('x.http.method.override') )
+            if( $customMethod = $this->getHeader('x-http-method-override') )
             {
                 $this->method = $this->filterMethod($customMethod);
             }
@@ -410,7 +410,7 @@ class Request implements RequestInterface
      */
     public function isXhr()
     {
-        return $this->getHeader('x.requested.with') === 'XMLHttpRequest';
+        return $this->getHeader('x-requested-with') === 'XMLHttpRequest';
     }
 
 
@@ -567,7 +567,7 @@ class Request implements RequestInterface
      */
     public function getContentType()
     {
-        return $this->getHeader('content.type');
+        return $this->getHeader('content-type');
     }
 
     /**
@@ -620,7 +620,7 @@ class Request implements RequestInterface
      */
     public function getContentLength()
     {
-        if( $result = $this->getHeader('content.length') )
+        if( $result = $this->getHeader('content-length') )
         {
             return (int) $result;
         }
