@@ -63,7 +63,7 @@ class NotAllowed implements HandlerInterface
 
         return $response
                 ->status(405)
-                ->header('content.type', $contentType)
+                ->header('content-type', $contentType)
                 ->header('allow', implode(', ', $methods))
                 ->write($output);
     }

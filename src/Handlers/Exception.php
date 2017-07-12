@@ -76,7 +76,7 @@ class Exception implements HandlerInterface
 
 
         return $response->status(500)
-                        ->header('content.type', $contentType)
+                        ->header('content-type', $contentType)
                         ->write($output);
     }
 
