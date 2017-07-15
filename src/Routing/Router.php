@@ -103,7 +103,7 @@ class Router implements RouterInterface
         {
             // check if pattern regex match the uri
 
-            $regex = '#^' . str_replace('#', '\#', $route->getPattern()) . '$#';
+            $regex = '#^' . str_replace('#', '\#', $route->getPattern()) . '$#'; // todo: preg_quote  . \ + * ? [ ^ ] $ ( ) { } = ! < > | : -
 
             if( preg_match($regex, $uri, $params) )
             {
