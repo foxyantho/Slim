@@ -49,14 +49,14 @@ trait ResolveCallableTrait
             return $callable;
         }
 
-        if( is_string($callable) ) // "\Class:method" or \Class::class
+        if( is_string($callable) ) // "\Class@method" or \Class::class
         {
             $class = $callable;
             $method = '__invoke';
 
-            if( strpos($callable, ':') )
+            if( strpos($callable, '@') )
             {
-                list($class, $method) = explode(':', $callable, 2);
+                list($class, $method) = explode('@', $callable, 2);
             }
 
             // call the resolved :
