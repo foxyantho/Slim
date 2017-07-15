@@ -15,6 +15,11 @@ use Exception;
 class MethodNotAllowedException extends Exception
 {
 
+    protected $code = 'PageMethodNotAllowed';
+
+    protected $message = 'Method not allowed';
+
+
     /**
      * HTTP methods allowed
      *
@@ -30,6 +35,11 @@ class MethodNotAllowedException extends Exception
     public function __construct( array $allowedMethods )
     {
         $this->allowedMethods = $allowedMethods;
+
+        if( !empty($allowedMethods) )
+        {
+            $this->message .= ', must be one of '.implode(', ', $allowedMethods);
+        }
 
         parent::__construct();
     }

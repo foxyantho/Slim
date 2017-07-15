@@ -15,4 +15,9 @@ use Exception;
 class NotFoundException extends Exception
 {
 
+    protected $code = 'PageNotFound';
+
+    protected $message = 'Page Not Found';
+
+
 }
