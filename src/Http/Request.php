@@ -10,8 +10,8 @@
 namespace Slim\Http;
 
 use Slim\Http\Interfaces\RequestInterface;
-use Slim\Http\Interfaces\HeadersInterface as Headers;
-use Slim\Http\Interfaces\EnvironmentInterface as Environment;
+use Slim\Http\Interfaces\HeadersInterface;
+use Slim\Http\Interfaces\EnvironmentInterface;
 
 use Closure;
 
@@ -87,6 +87,12 @@ class Request implements RequestInterface
      */
     protected $queryParams;
 
+    /**
+     * check if the request query string has been parsed into a array
+     * @var bool
+     */
+    protected $isQueryParsed = false;
+
 
     /**
      * The request headers
@@ -102,6 +108,12 @@ class Request implements RequestInterface
     protected $body;
 
     /**
+     * check if the request body has been parsed (if possible) into a array or object
+     * @var bool
+     */
+    protected $isBodyParsed = false;
+
+    /**
      * The parsed body params
      * @var array
      */
@@ -112,6 +124,18 @@ class Request implements RequestInterface
      * @var array
      */
     protected $bodyParsers = [];
+
+    /**
+     * check if the request body upload files has been parsed into a array
+     * @var bool
+     */
+    protected $isUploadedFilesParsed = false;
+
+    /**
+     * List of uploaded files
+     * @var array
+     */
+    protected $uploadedFiles;
 
     /**
      * Media type ex: "application/json"
@@ -126,7 +150,6 @@ class Request implements RequestInterface
     protected $mediaTypeParams;
 
 
-
     /**
      * Create new HTTP request.
      *
@@ -135,10 +158,8 @@ class Request implements RequestInterface
      * @param EnvironmentInterface  $serverParams
      * @param mixed                 $body
      */
-    public function __construct( $method, Headers $headers, Environment $server, $body )
+    public function __construct( $method, HeadersInterface $headers, EnvironmentInterface $server, $body )
     {
-        // _SERVER
-
         $this->serverParams = $server;
 
         // method
@@ -147,9 +168,9 @@ class Request implements RequestInterface
 
         // URI part
 
-        $isSecure = $server['https'];
+        $isSecure = ( isset($server['https']) && $server['https'] === 'on' );
 
-        $scheme = ( !empty($isSecure) && $isSecure === 'on' ) ? 'https' : 'http';
+        $scheme = $isSecure ? 'https' : 'http';
 
         $this->uriScheme = $scheme;
 
@@ -170,7 +191,7 @@ class Request implements RequestInterface
 
         $this->uriPath = '/' . ltrim($requestUri, '/');
 
-        //$requestUri = parse_url('http://example.com'.$serverParams['request.uri'], PHP_URL_PATH);
+        //$requestUri = parse_url('http://example.com'.$serverParams['request_uri'], PHP_URL_PATH);
 
         // query string
 
@@ -295,13 +316,7 @@ class Request implements RequestInterface
      */
     public function getMethod()
     {
-        // if( empty($this->method) ) // method override via header
-        // {
-        //     if( $customMethod = $this->getHeader('x-http-method-override') )
-        //     {
-        //         $this->method = $this->filterMethod($customMethod);
-        //     }
-        // }
+        // $customMethod = $this->getHeader('x-http-method-override');
 
         return $this->method;
     }
@@ -498,11 +513,13 @@ class Request implements RequestInterface
      */
     public function getQueryParams()
     {
-        if( !isset($this->queryParams) )
+        if( !$this->isQueryParsed )
         {
             // lazy
 
-            parse_str($this->queryString, $this->queryParams); // send URL decodes in $queryParams
+            $this->queryParams = $this->parseQueryString($this->queryString);
+
+            $this->isQueryParsed = true;
         }
 
         return $this->queryParams;
@@ -517,16 +534,32 @@ class Request implements RequestInterface
      */
     public function query( $key, $default = null )
     {
-        if( !isset($this->queryParams) )
+        if( !$this->isQueryParsed )
         {
             // lazy
 
-            parse_str($this->queryString, $this->queryParams); // send URL decodes in $queryParams
+            $this->queryParams = $this->parseQueryString($this->queryString);
+
+            $this->isQueryParsed = true;
         }
 
         return isset($this->queryParams[$key]) ? $this->queryParams[$key] : $default;
     }
 
+    /**
+     * Parse a query string into an array
+     *
+     * @param string $queryString
+     * @return array
+     */
+    protected function parseQueryString( $queryString )
+    {
+        $parsed = [];
+
+        parse_str($queryString, $parsed);
+
+        return $parsed;
+    }
 
 
     /*******************************************************************************
@@ -677,9 +710,11 @@ class Request implements RequestInterface
      * @return array|null
      * @throws RuntimeException
      */
-    protected function buildBodyParams() // todo revamp
+    protected function parseBodyParams()
     {
-        if( !isset($this->bodyParams) && isset($this->body) )
+        $parsed = null;
+
+        if( isset($this->body) )
         {
             $mediaType = $this->getMediaType();
 
@@ -693,10 +728,10 @@ class Request implements RequestInterface
                 {
                     throw new RuntimeException('Request body media type parser return value must be an array or null');
                 }
-
-                $this->bodyParams = $parsed;
             }
         }
+
+        return $parsed;
     }
 
     /**
@@ -715,7 +750,12 @@ class Request implements RequestInterface
      */
     public function getBodyParams()
     {
-        $this->buildBodyParams();
+        if( !$this->isBodyParsed )
+        {
+            $this->bodyParams = $this->parseBodyParams();
+
+            $this->isBodyParsed = true;
+        }
 
         return $this->bodyParams;
     }
@@ -730,7 +770,12 @@ class Request implements RequestInterface
      */
     public function input( $key, $default = null )
     {
-        $this->buildBodyParams();
+        if( !$this->isBodyParsed )
+        {
+            $this->bodyParams = $this->parseBodyParams();
+
+            $this->isBodyParsed = true;
+        }
 
         return isset($this->bodyParams[$key]) ? $this->bodyParams[$key] : $default;
     }
@@ -743,15 +788,9 @@ class Request implements RequestInterface
      */
     public function registerMediaTypeParser( $mediaType, callable $callable )
     {
-        if( $callable instanceof Closure )
-        {
-            $callable = $callable->bindTo($this);
-        }
+        // add multiple mimetype
 
-        if( !is_array($mediaType) )
-        {
-            $mediaType = [ $mediaType ]; // for multiple mimetype
-        }
+        $mediaType = is_array($mediaType) ? $mediaType : [$mediaType]; 
 
         // add to the body parsers :
 
@@ -759,6 +798,65 @@ class Request implements RequestInterface
         {
             $this->bodyParsers[$type] = $callable;
         }
+    }
+
+
+    /*******************************************************************************
+     * File Params
+     ******************************************************************************/
+
+    /**
+     * Retrieve normalized file upload data.
+     * These values MAY be prepared from $_FILES or the message body during instantiation
+     *
+     * @return array 
+     */
+    public function getUploadedFiles()
+    {
+        if( !$this->isUploadedFilesParsed )
+        {
+            // lazy
+
+            $this->uploadedFiles = isset($_FILES) ? $this->parseUploadedFiles($_FILES) : [];
+
+            $this->isUploadedFilesParsed = true;
+        }
+
+        return $this->uploadedFiles;
+    }
+
+    /**
+     * Parse a non-normalized, i.e. $_FILES superglobal, tree of uploaded file data.
+     * Always return an array of uploaded files, even if a single file, in case of multiple
+     *
+     * @param array $uploadedFiles
+     * @return array
+     */
+    protected function parseUploadedFiles( array $uploadedFiles )
+    {
+        $parsed = [];
+
+        // first level files['name'] => []
+
+        foreach( $uploadedFiles as $fieldName => $fieldValues )
+        {
+            // second level attrs : ['name' = '']
+
+            foreach( $fieldValues as $attrName => $attrValues )
+            {
+                $attrValues = is_array($attrValues) ? $attrValues : [$attrValues]; // multiple upload
+
+                // third level attrName => attrValue
+
+                foreach( $attrValues as $fileNum => $attrValue ) // array('name', 'type', 'tmp_name', 'error', 'size')
+                {
+                    $parsed[$fieldName][$fileNum][$attrName] = $attrValue;
+                }
+            }
+
+        }
+
+        return $parsed;
     }
 
 

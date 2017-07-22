@@ -10,7 +10,7 @@
 namespace Slim\Http;
 
 use Slim\Http\Interfaces\ResponseInterface;
-use Slim\Http\Interfaces\HeadersInterface as Headers;
+use Slim\Http\Interfaces\HeadersInterface;
 
 use InvalidArgumentException;
 use RuntimeException;
@@ -135,7 +135,7 @@ class Response implements ResponseInterface
      * @param int               $status  The response status code
      * @param HeadersInterface  $headers The response headers
      */
-    public function __construct( $status = 200, Headers $headers )
+    public function __construct( $status = 200, HeadersInterface $headers )
     {
         $this->status = $this->filterStatus($status);
 
