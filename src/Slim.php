@@ -406,7 +406,7 @@ class Slim
      */
     public function add( $callable )
     {
-        $callable = $this->resolveCallable($callable);
+        $callable = $this->resolveCallable($callable, $this);
 
         return $this->addMiddleware($callable);
     }
