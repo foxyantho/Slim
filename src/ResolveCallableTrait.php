@@ -28,20 +28,21 @@ trait ResolveCallableTrait
      * Resolve a string of the format '\class@method' into a closure that the router can dispatch.
      *
      * @param  string $callable
+     * @param  object $bindTo
      * @return \Closure
      * @throws RuntimeException if the string cannot be resolved as a callable
      */
-    protected function resolveCallable( $callable )
+    protected function resolveCallable( $callable, $bindTo = null )
     {
 
         if( $callable instanceof Closure ) // closures
         {
-            // if ( isset($this->container) )
-            // {
-            //     return $callable->bindTo($this->container);
-            // }
+            if ( isset($bindTo) )
+            {
+                return $callable->bindTo($bindTo);
+            }
 
-            // return $callable->bindTo($this); //todo
+            return $callable;
         }
 
         if( is_callable($callable) ) // functions
@@ -61,14 +62,16 @@ trait ResolveCallableTrait
 
             // call the resolved :
 
-            $resolved = [new $class, $method];
+            $newClass = ( isset($bindTo) ? new $class($bindTo) : new $class );
+
+            $resolved = [$newClass, $method];
 
             if( !is_callable($resolved) )
             {
                 throw new RuntimeException(sprintf('Callable "%s" does not exist', $callable));
             }
 
-            return $resolved; // function() { call_user_func_array($resolved, func_get_args()); };
+            return $resolved;
         }
 
         throw new RuntimeException(sprintf('Callable "%s" is not resolvable', $callable));
