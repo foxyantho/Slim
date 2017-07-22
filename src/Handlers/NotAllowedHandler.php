@@ -11,6 +11,12 @@ class NotAllowedHandler extends AbstractErrorHandler
 
 
     
+    protected function extraRenderers()
+    {
+        return [
+            'text/html' => [$this, 'htmlMessage'],
+        ];
+    }
 
     protected function htmlMessage()
     {
