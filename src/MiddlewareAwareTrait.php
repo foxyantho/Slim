@@ -71,7 +71,7 @@ trait MiddlewareAwareTrait
 
         $this->stack[] = function( Request $request, Response $response ) use ( $callable, $next )
         {
-            $result = call_user_func($callable, $req, $res, $next);
+            $result = call_user_func($callable, $request, $response, $next);
 
             if( !$result instanceof Response )
             {
