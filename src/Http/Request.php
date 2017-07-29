@@ -176,9 +176,7 @@ class Request implements RequestInterface
 
         // URI authority: Host
 
-        $host = $server['http_host'] ?: $server['server_name'];
-
-        $this->uriHost = $host;
+        $this->uriHost = $server['server_name']; // || 'http_host'
 
         // request URI, stripped from query params
 
@@ -437,7 +435,7 @@ class Request implements RequestInterface
      */
     public function isXhr()
     {
-        return $this->getHeader('x-requested-with') === 'XMLHttpRequest';
+        return ( $this->getHeader('x-requested-with') === 'XMLHttpRequest' );
     }
 
 
@@ -473,9 +471,9 @@ class Request implements RequestInterface
      *
      * @return string
      */
-    public function getUriPath()
+    public function getRequestUri()
     {
-        return $this->uriPath;
+        return $this->requestUri;
     }
 
     /**
@@ -543,7 +541,7 @@ class Request implements RequestInterface
             $this->isQueryParsed = true;
         }
 
-        return isset($this->queryParams[$key]) ? $this->queryParams[$key] : $default;
+        return ( isset($this->queryParams[$key]) ? $this->queryParams[$key] : $default );
     }
 
     /**
@@ -777,7 +775,7 @@ class Request implements RequestInterface
             $this->isBodyParsed = true;
         }
 
-        return isset($this->bodyParams[$key]) ? $this->bodyParams[$key] : $default;
+        return ( isset($this->bodyParams[$key]) ? $this->bodyParams[$key] : $default );
     }
 
     /**
