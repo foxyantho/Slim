@@ -13,8 +13,6 @@ namespace Slim\Routing;
 use Slim\Routing\Interfaces\RouterInterface;
 use Slim\Routing\Interfaces\RouteInvocationStrategyInterface;
 
-use Slim\Http\Interfaces\RequestInterface as Request;
-
 use InvalidArgumentException;
 use Slim\Routing\Exceptions\NotFoundException;
 use Slim\Routing\Exceptions\MethodNotAllowedException;
@@ -103,13 +101,11 @@ class Router implements RouterInterface
         {
             // check if pattern regex match the uri
 
-            $regex = '#^' . str_replace('#', '\#', $route->getPattern()) . '$#'; // todo: preg_quote  . \ + * ? [ ^ ] $ ( ) { } = ! < > | : -
+            $regex = '#^' . str_replace('#', '\#', $route->getPattern()) . '$#';
 
             if( preg_match($regex, $uri, $params) )
             {
                 // compare server request method with route's allowed http methods
-
-                // todo : if declare route with methods separatly : map('get',url_1) map('post',url_1)
 
                 $allowedMethods = $route->getMethods();
 

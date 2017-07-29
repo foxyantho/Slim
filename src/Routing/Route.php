@@ -13,11 +13,10 @@ use Slim\Routing\Interfaces\RouteInterface;
 use Slim\ResolveCallableTrait;
 use Slim\MiddlewareAwareTrait;
 
-use Slim\Routing\RouteInvocationStrategy as InvocationStrategy;
 use Slim\Routing\Interfaces\RouteInvocationStrategyInterface as InvocationStrategyInterface;
 
-use Slim\Http\Interfaces\RequestInterface as Request;
-use Slim\Http\Interfaces\ResponseInterface as Response;
+use Slim\Http\Interfaces\RequestInterface;
+use Slim\Http\Interfaces\ResponseInterface;
 
 use Closure;
 use Exception;
@@ -47,7 +46,7 @@ class Route implements RouteInterface
      * Route pattern "/hello/world"
      * @var string
      */
-    protected $pattern; // todo rename to "url" ?
+    protected $pattern;
 
     /**
      * Route callable function
@@ -145,11 +144,6 @@ class Route implements RouteInterface
      */
     public function getInvocationStrategy()
     {
-        if( !$this->invocationStrategy )
-        {
-            $this->invocationStrategy = new InvocationStrategy; // default
-        }
-
         return $this->invocationStrategy;
     }
 
@@ -182,7 +176,7 @@ class Route implements RouteInterface
      *
      * @return ResponseInterface
      */
-    public function run( Request $request, Response $response )
+    public function run( RequestInterface $request, ResponseInterface $response )
     {
         // Traverse middleware stack and fetch updated response
 
@@ -200,7 +194,7 @@ class Route implements RouteInterface
      * @return \Psr\Http\Message\ResponseInterface
      * @throws \Exception  if the route handler throws an exception
      */
-    public function __invoke( Request $request, Response $response )
+    public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
         // Resolve route callable
 
@@ -219,7 +213,7 @@ class Route implements RouteInterface
 
         $routeResponse = $handler($request, $response, $callable, $this->arguments);
 
-        if( !$routeResponse instanceof Response )
+        if( !$routeResponse instanceof ResponseInterface )
         {
             throw new UnexpectedValueException('Route handler must return an instance of ResponseInterface');
         }
