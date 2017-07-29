@@ -9,8 +9,8 @@
 
 namespace Slim;
 
-use Slim\Http\Interfaces\RequestInterface as Request;
-use Slim\Http\Interfaces\ResponseInterface as Response;
+use Slim\Http\Interfaces\RequestInterface;
+use Slim\Http\Interfaces\ResponseInterface;
 
 use SplStack;
 use SplDoublyLinkedList;
@@ -69,11 +69,11 @@ trait MiddlewareAwareTrait
 
         $next = $this->stack->top();
 
-        $this->stack[] = function( Request $request, Response $response ) use ( $callable, $next )
+        $this->stack[] = function( RequestInterface $request, ResponseInterface $response ) use ( $callable, $next )
         {
             $result = call_user_func($callable, $request, $response, $next);
 
-            if( !$result instanceof Response )
+            if( !$result instanceof ResponseInterface )
             {
                 throw new UnexpectedValueException('Middleware must return instance of \Slim\Http\ResponseInterface');
             }
@@ -110,12 +110,12 @@ trait MiddlewareAwareTrait
     /**
      * Call middleware stack
      *
-     * @param  Request  $request A request object
-     * @param  Response $response A response object
+     * @param  RequestInterface  $request A request object
+     * @param  ResponseInterface $response A response object
      *
      * @return Response
      */
-    public function callMiddlewareStack( Request $request, Response $response )
+    public function callMiddlewareStack( RequestInterface $request, ResponseInterface $response )
     {
         if( !isset($this->stack) )
         {

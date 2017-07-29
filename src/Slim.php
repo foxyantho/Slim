@@ -12,8 +12,8 @@ namespace Slim;
 
 use Closure;
 
-use Slim\Http\Interfaces\RequestInterface as Request;
-use Slim\Http\Interfaces\ResponseInterface as Response;
+use Slim\Http\Interfaces\RequestInterface;
+use Slim\Http\Interfaces\ResponseInterface;
 
 use Slim\Http\Environment as HttpEnvironment;
 use Slim\Http\Headers as HttpHeaders;
@@ -465,7 +465,7 @@ class Slim
      * @param  ResponseInterface $response
      * @return ResponseInterface
      */
-    protected function finalize( Response $response )
+    protected function finalize( ResponseInterface $response )
     {
         // stop PHP sending a Content-Type automatically
         ini_set('default_mimetype', '');
@@ -492,7 +492,7 @@ class Slim
      *
      * @param ResponseInterface $response
      */
-    protected function respond( Response $response )
+    protected function respond( ResponseInterface $response )
     {
         // send response
 
@@ -544,7 +544,7 @@ class Slim
      * @throws MethodNotAllowedException
      * @throws NotFoundException
      */
-    public function __invoke( Request $request, Response $response )
+    public function __invoke( RequestInterface $request, ResponseInterface $response )
     {
         try {
 
@@ -611,7 +611,7 @@ class Slim
 
     // Extras Exceptions ; errors
 
-    protected function handleException( Request $request, Response $response, $exception )
+    protected function handleException( RequestInterface $request, ResponseInterface $response, $exception )
     {
         $exceptionType = get_class($exception);
 
