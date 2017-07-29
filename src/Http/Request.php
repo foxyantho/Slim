@@ -517,7 +517,7 @@ class Request implements RequestInterface
         {
             // lazy
 
-            $this->queryParams = $this->parseQueryString($this->queryString);
+            $this->queryParams = $this->parseQueryString();
 
             $this->isQueryParsed = true;
         }
@@ -538,7 +538,7 @@ class Request implements RequestInterface
         {
             // lazy
 
-            $this->queryParams = $this->parseQueryString($this->queryString);
+            $this->queryParams = $this->parseQueryString();
 
             $this->isQueryParsed = true;
         }
@@ -552,11 +552,11 @@ class Request implements RequestInterface
      * @param string $queryString
      * @return array
      */
-    protected function parseQueryString( $queryString )
+    protected function parseQueryString()
     {
         $parsed = [];
 
-        parse_str($queryString, $parsed);
+        parse_str($this->queryString, $parsed);
 
         return $parsed;
     }

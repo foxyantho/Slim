@@ -187,6 +187,19 @@ class Response implements ResponseInterface
     }
 
     /**
+     * Set the specified status code
+     *
+     * @param int $code
+     * @return void
+     */
+    public function statusCode( $code )
+    {
+        $code = $this->filterStatus($code);
+
+        $this->status = $code; //todo: wrap into try/catch
+    }
+
+    /**
      * Set the specified status code and, optionally, reason phrase.
      *
      * If no reason phrase is specified, implementations MAY choose to default
