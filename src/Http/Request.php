@@ -217,7 +217,7 @@ class Request implements RequestInterface
 
         $this->registerMediaTypeParser('application/x-www-form-urlencoded', function( $input )
         {
-            parse_str(urldecode($input), $result); // if not argment#2 -> extract()
+            parse_str(urldecode($input), $result); // if not argment#2 -> extract() // todo: urldecode
 
             return $result;
         });
@@ -783,21 +783,12 @@ class Request implements RequestInterface
     /**
      * Register media type parser
      *
-     * @param string|array   $mediaType A HTTP media type (excluding content-type params)
+     * @param string   $mediaType A HTTP media type (excluding content-type params)
      * @param callable $callable  A callable that returns parsed contents for media type
      */
     public function registerMediaTypeParser( $mediaType, callable $callable )
     {
-        // add multiple mimetype
-
-        $mediaType = is_array($mediaType) ? $mediaType : [$mediaType]; 
-
-        // add to the body parsers :
-
-        foreach( $mediaType as $type )
-        {
-            $this->bodyParsers[$type] = $callable;
-        }
+        $this->bodyParsers[$mediaType] = $callable;
     }
 
 
