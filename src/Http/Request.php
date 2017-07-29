@@ -836,21 +836,23 @@ class Request implements RequestInterface
     {
         $parsed = [];
 
-        // first level files['name'] => []
+        // $fieldName : 'form_input' ; $fieldValues : [ 'name' => '', 'type' => '' ] || [ 'name' => [ 0,1 => '' ], 'type' => [ 0,1 => ''] ]
 
         foreach( $uploadedFiles as $fieldName => $fieldValues )
         {
-            // second level attrs : ['name' = '']
+            // $attrName : 'name' ; $attrValues : 'name' || [ 'name' => [ 0,1 => '' ] ]
 
-            foreach( $fieldValues as $attrName => $attrValues )
+            foreach( $fieldValues as $attrName => $attrValues ) 
             {
-                $attrValues = is_array($attrValues) ? $attrValues : [$attrValues]; // multiple upload
+                $attrValues = is_array($attrValues) ? $attrValues : [$attrValues]; // if multiple upload
 
-                // third level attrName => attrValue
+                // $fileNum : 0,1 ; $attrValue : 'filename.xxx'
 
-                foreach( $attrValues as $fileNum => $attrValue ) // array('name', 'type', 'tmp_name', 'error', 'size')
+                foreach( $attrValues as $fileNum => $attrValue )
                 {
                     $parsed[$fieldName][$fileNum][$attrName] = $attrValue;
+
+                    // ['name', 'type', 'tmp_name', 'error', 'size']
                 }
             }
 
