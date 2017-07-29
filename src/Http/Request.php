@@ -158,7 +158,7 @@ class Request implements RequestInterface
      * @param EnvironmentInterface  $serverParams
      * @param mixed                 $body
      */
-    public function __construct( $method, HeadersInterface $headers, EnvironmentInterface $server, $body )
+    public function __construct( EnvironmentInterface $server, $method, HeadersInterface $headers, $body )
     {
         $this->serverParams = $server;
 
