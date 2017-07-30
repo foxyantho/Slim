@@ -26,9 +26,11 @@ interface ErrorRendererInterface
     public function __construct( $exception, $displayErrorDetails );
 
     /**
+     * Rendering callback
+     * 
      * @return string
      */
-    //public function render();
+    public function __invoke();
 
 
 }

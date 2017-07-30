@@ -44,10 +44,5 @@ abstract class AbstractErrorRenderer implements ErrorRendererInterface
         $this->displayErrorDetails = $displayErrorDetails;
     }
 
-    public function __invoke()
-    {
-        return $this->render();
-    }
-
 
 }

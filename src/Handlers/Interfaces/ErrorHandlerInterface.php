@@ -12,9 +12,6 @@ namespace Slim\Handlers\Interfaces;
 use Slim\Http\Interfaces\RequestInterface as Request;
 use Slim\Http\Interfaces\ResponseInterface as Response;
 
-use Exception;
-use Throwable;
-
 
 /**
  * ErrorHandlerInterface
@@ -32,7 +29,7 @@ interface ErrorHandlerInterface
      * @param $displayErrorDetails
      * @return ResponseInterface
      */
-    public function __invoke( Request $request, Response $response, Exception $exception, $displayErrorDetails );
+    public function __invoke( Request $request, Response $response, $exception, $displayErrorDetails );
 
 
 }

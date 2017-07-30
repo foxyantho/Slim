@@ -10,16 +10,7 @@ class NotFoundHandler extends AbstractErrorHandler
     protected $statusCode = 404;
 
 
-    protected function extraRenderers()
-    {
-        return [
-            'text/html' => [$this, 'htmlMessage'],
-            //'application/json' => [$this, 'jsonMessage'],
-            //'text/plain' => PlainTextErrorRenderer::class
-        ];
-    }
-
-    protected function htmlMessage()
+    protected function renderHtml()
     {
         return '<html>
                 <head>

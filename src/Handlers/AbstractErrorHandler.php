@@ -16,7 +16,7 @@ use Slim\Http\Interfaces\RequestInterface as Request;
 use Slim\Http\Interfaces\ResponseInterface as Response;
 
 use Exception;
-use Slim\Routing\Exceptions\NotFoundException;
+use UnexpectedValueException;
 use Slim\Routing\Exceptions\MethodNotAllowedException;
 
 use Slim\Handlers\ErrorRenderers\HtmlErrorRenderer;
@@ -33,11 +33,11 @@ class AbstractErrorHandler implements ErrorHandlerInterface
      * @var array
      */
     protected $knownContentTypes = [
-        'text/html',
-        'application/json',
         'text/plain',
+        'application/json',
+        'text/html',
+        'text/xml',
         'application/xml',
-        'text/xml'
     ];
 
     /**
@@ -70,18 +70,6 @@ class AbstractErrorHandler implements ErrorHandlerInterface
      */
     protected $contentType;
 
-    /**
-     * mressage renderers
-     * @var array
-     */
-    protected $renderers = [];
-
-    /**
-     * Current message renderer
-     * @var mixed
-     */
-    protected $renderer;
-
 
     /**
      * Invoke error handler
@@ -93,8 +81,9 @@ class AbstractErrorHandler implements ErrorHandlerInterface
      *
      * @return Response
      */
-    public function __invoke( Request $request, Response $response, Exception $exception, $displayErrorDetails = false )
+    public function __invoke( Request $request, Response $response, $exception, $displayErrorDetails = false )
     {
+
         $this->request = $request;
 
         $this->response = $response;
@@ -103,13 +92,27 @@ class AbstractErrorHandler implements ErrorHandlerInterface
 
         $this->displayErrorDetails = $displayErrorDetails;
 
-        // renderers :
+        // content type based on client
 
-        $this->renderers = array_merge(static::getDefaultRenderers(), $this->extraRenderers());
+        $contentType = $this->determineContentType();
+
+        $this->contentType = $contentType;
+
+        // redering message :
+
+        $output = $this->renderMessage($contentType);
 
         // send response :
 
-        return $this->formatResponse();
+        if( $exception instanceof MethodNotAllowedException )
+        {
+            $response->header('allow', $exception->getAllowedMethods());
+        }
+
+        return $response
+            ->status($this->getStatusCode())
+            ->header('content-type', $this->getContentType())
+            ->write($output);
     }
 
 
@@ -119,106 +122,62 @@ class AbstractErrorHandler implements ErrorHandlerInterface
      *******************************************************************************/
 
 
-    /**
-     * Return the default message renderers
-     *
-     * @return array
-     */
-    protected static function getDefaultRenderers()
+    protected function renderMessage( $contentType )
     {
-        return [
-            'text/html' => HtmlErrorRenderer::class,
-            'application/json' => JsonErrorRenderer::class,
-            'text/plain' => PlainTextErrorRenderer::class,
-            // 'text/xml' => XmlErrorRenderer::class,
-            // 'application/xml' => XmlErrorRenderer::class
-        ];
-    }
+        $output = null;
 
-    /**
-     * Extra renderers if needed in child classes
-     *
-     * @return array
-     */
-    protected function extraRenderers()
-    {
-        return [];
-    }
-
-    /**
-     * Return the default renderer
-     *
-     * @return mixed
-     */
-    protected function getDefaultRenderer()
-    {
-        return [HtmlErrorRenderer::class];
-    }
-
-    /**
-     * @return Response
-     */
-    protected function formatResponse()
-    {
-        $e = $this->exception;
-
-        $response = $this->response;
-
-        // renderer callable
-
-        $renderer = $this->getRenderer(); // todo: refactor
-
-        if( is_callable($renderer) )
+        switch( $contentType )
         {
-            $body = call_user_func_array($renderer, [$this->exception, $this->displayErrorDetails]);
-        }
-        elseif( is_string($renderer) ) // class
-        {
-            $renderer = new $renderer($this->exception, $this->displayErrorDetails);
+            case 'text/plain':
+                $output = $this->renderText();
+            break;
 
-            $body = $renderer();
+            case 'application/json':
+                $output = $this->renderJson();
+            break;
+
+            case 'text/html':
+                $output = $this->renderHtml();
+            break;
+
+            case 'text/xml':
+            case 'application/xml':
+                $output = $this->renderXml();
+            break;
+
+            // default:
+            //     throw new UnexpectedValueException('Cannot render unknown content type ' . $contentType);
         }
 
-        // send response :
-
-        if( $e instanceof MethodNotAllowedException )
-        {
-            $response->header('allow', $e->getAllowedMethods());
-        }
-
-        return $response
-            ->status($this->getStatusCode())
-            ->header('content-type', $this->getContentType())
-            ->write($body);
+        return $output;
     }
 
-    /**
-     * Determine which renderer to use based on content type
-     * Overloaded $renderer from calling class takes precedence over all
-     *
-     * @throws \RuntimeException
-     */
-    protected function getRenderer()
+    protected function renderWithClass( $className )
     {
-        if( !isset($this->renderer) )
-        {
-            $contentType = $this->getContentType();
+        $renderer = new $className($this->exception, $this->displayErrorDetails);
 
-            if( isset($this->renderers[$contentType]) )
-            {
-                $renderer = $this->renderers[$contentType];
-            }
-            else
-            {
-                $renderer = $this->getDefaultRenderer();
-            }
-
-            $this->renderer = $renderer;
-        }
-
-        return $this->renderer;
+        return $renderer(); // call
     }
 
+    protected function renderText()
+    {
+        return $this->renderWithClass(PlainTextErrorRenderer::class);
+    }
+
+    protected function renderJson()
+    {
+        return $this->renderWithClass(JsonErrorRenderer::class);
+    }
+
+    protected function renderHtml()
+    {
+        return $this->renderWithClass(HtmlErrorRenderer::class);
+    }
+
+    protected function renderXml()
+    {
+        return $this->renderWithClass(XmlErrorRenderer::class);
+    }
 
 
     /********************************************************************************
@@ -227,6 +186,8 @@ class AbstractErrorHandler implements ErrorHandlerInterface
 
 
     /**
+     * Return status code ; will be sent to the client
+     * 
      * @return int
      */
     public function getStatusCode()
@@ -242,7 +203,17 @@ class AbstractErrorHandler implements ErrorHandlerInterface
     }
 
     /**
-     * Determine which content type we know about is wanted using Accept header
+     * Return content type ; will be sent to the client
+     *
+     * @return string|null
+     */
+    public function getContentType()
+    {
+        return $this->contentType;
+    }
+
+    /**
+     * Try to determine which content type we know about is wanted using Accept header
      *
      * Note: This method is a bare-bones implementation designed specifically for
      * Slim's error handling requirements. Consider a fully-feature solution such
@@ -250,37 +221,34 @@ class AbstractErrorHandler implements ErrorHandlerInterface
      *
      * @return string
      */
-    public function getContentType()
+    protected function determineContentType()
     {
-        if( !isset($this->contentType) )
+        // try to get client content type :
+
+        $contentType = 'text/html'; // default, can be overrided in child class
+
+        $acceptHeader = $this->request->getHeader('accept');
+
+        $selectedContentTypes = array_intersect(explode(',', $acceptHeader), $this->knownContentTypes);
+
+        $count = count($selectedContentTypes);
+
+        if( $count )
         {
-            $acceptHeader = $this->request->getHeader('accept');
+            $current = current($selectedContentTypes);
 
-            $selectedContentTypes = array_intersect(explode(',', $acceptHeader), $this->knownContentTypes);
+            $contentType = $current;
 
-            $count = count($selectedContentTypes);
+            // Ensure other supported content types take precedence over text/plain
+            // when multiple content types are provided via Accept header.
 
-            $contentType = 'text/html'; // default
-
-            if( $count )
+            if( $current == 'text/plain' && $count > 1 )
             {
-                $current = current($selectedContentTypes);
-
-                $contentType = $current;
-
-                // Ensure other supported content types take precedence over text/plain
-                // when multiple content types are provided via Accept header.
-
-                if( $current === 'text/plain' && $count > 1 )
-                {
-                    $contentType = next($selectedContentTypes);
-                }
+                $contentType = next($selectedContentTypes);
             }
-
-            $this->contentType = $contentType;
         }
 
-        return $this->contentType;
+        return $contentType;
     }
 
 

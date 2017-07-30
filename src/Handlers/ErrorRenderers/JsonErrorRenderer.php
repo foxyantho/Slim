@@ -21,7 +21,7 @@ class JsonErrorRenderer extends AbstractErrorRenderer
     /**
      * @return string
      */
-    public function render()
+    public function __invoke()
     {   
         $e = $this->exception;
 

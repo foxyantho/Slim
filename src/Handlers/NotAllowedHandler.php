@@ -10,15 +10,7 @@ class NotAllowedHandler extends AbstractErrorHandler
     protected $statusCode = 405;
 
 
-    
-    protected function extraRenderers()
-    {
-        return [
-            'text/html' => [$this, 'htmlMessage'],
-        ];
-    }
-
-    protected function htmlMessage()
+    protected function renderHtml()
     {
         $e = $this->exception;
 
@@ -42,4 +34,6 @@ class NotAllowedHandler extends AbstractErrorHandler
             $methods
         );
     }
+
+
 }
