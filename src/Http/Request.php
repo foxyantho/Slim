@@ -471,9 +471,9 @@ class Request implements RequestInterface
      *
      * @return string
      */
-    public function getRequestUri()
+    public function getUriPath()
     {
-        return $this->requestUri;
+        return $this->uriPath;
     }
 
     /**
