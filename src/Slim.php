@@ -29,8 +29,8 @@ use Slim\Handlers\NotFoundHandler;
 use Slim\Handlers\NotAllowedHandler;
 
 use Exception;
-//use Throwable;
-use Slim\Exceptions\SlimException;
+use Throwable;
+// use Slim\Exceptions\SlimException;
 use Slim\Routing\Exceptions\NotFoundException;
 use Slim\Routing\Exceptions\MethodNotAllowedException;
 
@@ -122,13 +122,13 @@ class Slim
 
         $body = file_get_contents('php://input'); // stream_get_contents(fopen('php://input', 'r'));
 
-        $this->request = new HttpRequest($method, $requestHeaders, $this->environment, $body);
+        $this->request = new HttpRequest($this->environment, $method, $requestHeaders, $body);
 
         // response
 
         $protocolVersion = $this->getSetting('httpVersion');
 
-        $responseHeaders = new HttpHeaders(['content-type' => 'text/html']);
+        $responseHeaders = new HttpHeaders(['content-type' => 'text/html;charset=utf-8']);
 
         $this->response = new HttpResponse(200, $responseHeaders);
     
@@ -432,18 +432,27 @@ class Slim
      */
     public function run( $silent = false )
     {
-       // traverse middleware stack ; process the request
+
+       $request = $this->request;
+       $response = $this->response;
+
+        // traverse middleware stack ; process the request :
 
         try {
-            $response = $this->callMiddlewareStack($this->request, $this->response);
+            $response = $this->callMiddlewareStack($request, $response);
         }
         catch( Exception $exception ) {
 
             // catch any other exception
 
-            $response = $this->handleException($this->request, $this->response, $exception);
+            $response = $this->handleException($request, $response, $exception);
         }
-        // todo thrwable
+        catch( Throwable $error ) {
+
+            // catch PHP7 errors
+
+            $response = $this->handleException($request, $response, $error);
+        }
 
         // send response
 
@@ -511,10 +520,7 @@ class Slim
             {
                 $name = ucwords($name, '-'); // convert header to right format "Content-Type"
 
-                if( !is_array($values) )
-                {
-                    $values = [$values]; // in case of multi-headers like 'Accept: get,post'
-                }
+                $values = is_array($values) ? $values : [$values]; // multi-headers fileds, like 'Accept: get,post'
 
                 foreach( $values as $value )
                 {
@@ -553,17 +559,17 @@ class Slim
                 $request->getUriPath()
             );
 
-            list($routeName, $route, $routeArguments) = $routeInfo;
+            list($routeName, $route, $arguments) = $routeInfo;
 
             // URL decode the named arguments from the router
 
-            $routeArguments = array_map('urldecode', $routeArguments);
+            $arguments = array_map('urldecode', $arguments);
 
             // prepare the route
 
             $handler = $this->getRouteInvocationStrategy();
 
-            $route->prepare($handler, $routeArguments);
+            $route->prepare($handler, $arguments);
 
             // traverse route middlewares :
 
@@ -604,18 +610,23 @@ class Slim
 
     public function setRouteInvocationStrategy( RouteInvocationStrategyInterface $handler )
     {
-        $handler = $this->resolveCallable($handler);
+        // $handler = $this->resolveCallable($handler);
 
         $this->routeInvocationStrategy = $handler;
     }
+
+
+
+
+
 
     // Extras Exceptions ; errors
 
     protected function handleException( RequestInterface $request, ResponseInterface $response, $exception )
     {
-        $exceptionType = get_class($exception);
+        $type = get_class($exception);
 
-        $handler = $this->getExceptionHandler($exceptionType);
+        $handler = $this->getErrorHandler($type);
 
         // response :
 
@@ -624,23 +635,23 @@ class Slim
         return call_user_func_array($handler, [$request, $response, $exception, $displayErrorDetails]);
     }
 
-    public function getExceptionHandler( $type )
+    public function getErrorHandler( $type )
     {
-        if( isset($this->exceptionHandlers[$type]) )
+        if( isset($this->errorHandlers[$type]) )
         {
-            $handler = $this->exceptionHandlers[$type];
+            $handler = $this->errorHandlers[$type];
 
-            return $this->resolveCallable($handler);
+            return $handler;
         }
 
         return $this->getDefaultErrorHandler();
     }
 
-    public function setExceptionHandler( $type, $handler )
+    public function setErrorHandler( $type, $handler )
     {
-        $handler = $this->resolveCallable($handler);
+        // $handler = $this->resolveCallable($handler);
 
-        $this->exceptionHandlers[$type] = $handler;
+        $this->errorHandlers[$type] = $handler;
     }
 
     public function getDefaultErrorHandler()
@@ -659,10 +670,10 @@ class Slim
 
     public function setDefaultErrorHandler( $handler )
     {
-        $handler = $this->resolveCallable($handler);
-
         $this->defaultErrorHandler = $handler;
     }
+
+
 
     // Not Found
 
@@ -678,8 +689,6 @@ class Slim
 
     public function setNotFoundHandler( $handler )
     {
-        $handler = $this->resolveCallable($handler);
-
         $this->notFoundHandler = $handler;
     }
 
@@ -697,8 +706,6 @@ class Slim
 
     public function setHotAllowedHandler( $handler )
     {
-        $handler = $this->resolveCallable($handler);
-
         $this->notAllowedHandler = $handler;
     }
 
