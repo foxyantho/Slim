@@ -182,9 +182,31 @@ class Request implements RequestInterface
 
         $requestUri = rawurldecode($server['request_uri']); // &20
 
+        $scriptName = $server['script_name']; // with base folder
+
         if( ($pos = strpos($requestUri, '?')) !== false )
         {
             $requestUri = substr($requestUri, 0, $pos);
+        }
+
+        // define in which folder we are
+
+        if( strpos($requestUri, $scriptName) === 0 )
+        {
+            // no rewrite "/folder/index.php/route"
+            $requestUri = substr($requestUri, strlen($scriptName));
+        }
+        else
+        {
+            $basePath = dirname($scriptName); // "/"index.php, "/folder/"index.php
+            $basePath = ( $basePath !== '.' ? sprintf('/%s/', trim($basePath, '/')) : '/' );
+
+            // remove base folder "'/folder/'index.php/route" or "'/folder/'route"
+
+            if( strpos($requestUri, $basePath) === 0 )
+            {
+                $requestUri = substr($requestUri, strlen($basePath));
+            }
         }
 
         $this->uriPath = '/' . ltrim($requestUri, '/');
